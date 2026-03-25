@@ -1,6 +1,12 @@
 const { Article, Collection } = require('../models');
 const { success, fail, ERROR_CODES } = require('../utils/http');
 
+async function refreshCollectionsCount(articleId) {
+    const collectionsCount = await Collection.count({ where: { articleId } });
+    await Article.update({ collectionsCount }, { where: { id: articleId } });
+    return collectionsCount;
+}
+
 exports.collect = async (req, res, next) => {
     try {
         const articleId = Number(req.params.id);
@@ -15,7 +21,8 @@ exports.collect = async (req, res, next) => {
             defaults: { userId: req.auth.userId, articleId },
         });
 
-        return success(res, { collected: true }, '收藏成功');
+        const collectionsCount = await refreshCollectionsCount(articleId);
+        return success(res, { collected: true, collectionsCount }, '收藏成功');
     } catch (err) {
         return next(err);
     }
@@ -29,7 +36,8 @@ exports.uncollect = async (req, res, next) => {
             where: { userId: req.auth.userId, articleId },
         });
 
-        return success(res, { collected: false }, '取消收藏成功');
+        const collectionsCount = await refreshCollectionsCount(articleId);
+        return success(res, { collected: false, collectionsCount }, '取消收藏成功');
     } catch (err) {
         return next(err);
     }

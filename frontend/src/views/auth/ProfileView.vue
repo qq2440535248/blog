@@ -1,22 +1,44 @@
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import request from "../../utils/request";
 import message from "../../utils/message";
 
+const route = useRoute();
+const router = useRouter();
 const loading = ref(false);
 const formRef = ref();
 const avatarUploading = ref(false);
 const lastAvatarName = ref("");
 const likesLoading = ref(false);
 const collectionsLoading = ref(false);
+const passwordLoading = ref(false);
 const likedArticles = ref([]);
 const collectedArticles = ref([]);
+const likesPagination = reactive({ page: 1, pageSize: 6, total: 0 });
+const collectionsPagination = reactive({ page: 1, pageSize: 6, total: 0 });
+const tabItems = [
+  { key: "profile", label: "个人信息" },
+  { key: "security", label: "安全设置" },
+  { key: "likes", label: "我的点赞" },
+  { key: "collections", label: "我的收藏" },
+];
+
+const activeTab = ref("profile");
+
 const form = reactive({
   username: "",
   email: "",
   nickname: "",
   avatarUrl: "",
   bio: "",
+});
+
+const passwordFormRef = ref();
+const passwordForm = reactive({
+  oldPassword: "",
+  newPassword: "",
+  confirmPassword: "",
 });
 
 const rules = {
@@ -30,6 +52,66 @@ const rules = {
   ],
   nickname: [{ max: 30, message: "昵称最多 30 个字符", trigger: "blur" }],
 };
+
+const validateConfirmPassword = (_rule, value, callback) => {
+  if (!value) {
+    callback(new Error("请再次输入新密码"));
+    return;
+  }
+
+  if (value !== passwordForm.newPassword) {
+    callback(new Error("两次输入的新密码不一致"));
+    return;
+  }
+
+  callback();
+};
+
+const passwordRules = {
+  oldPassword: [{ required: true, message: "请输入旧密码", trigger: "blur" }],
+  newPassword: [
+    { required: true, message: "请输入新密码", trigger: "blur" },
+    { min: 6, message: "新密码至少 6 位", trigger: "blur" },
+  ],
+  confirmPassword: [
+    { required: true, message: "请再次输入新密码", trigger: "blur" },
+    { validator: validateConfirmPassword, trigger: "blur" },
+  ],
+};
+
+const activeTabTitle = computed(
+  () =>
+    tabItems.find((item) => item.key === activeTab.value)?.label || "个人中心",
+);
+
+function normalizeTab(tab) {
+  return tabItems.some((item) => item.key === tab) ? tab : "profile";
+}
+
+function switchTab(tab) {
+  const normalized = normalizeTab(tab);
+  activeTab.value = normalized;
+  router.replace({ query: { ...route.query, tab: normalized } });
+}
+
+function goArticleDetail(id) {
+  router.push(`/articles/${id}`);
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate(),
+  ).padStart(2, "0")}`;
+}
 
 function beforeAvatarUpload(file) {
   const isImage = file.type?.startsWith("image/");
@@ -87,9 +169,13 @@ async function fetchMyLikes() {
   try {
     likesLoading.value = true;
     const { data } = await request.get("/users/me/likes", {
-      params: { page: 1, pageSize: 6 },
+      params: {
+        page: likesPagination.page,
+        pageSize: likesPagination.pageSize,
+      },
     });
     likedArticles.value = data.data.list || [];
+    likesPagination.total = data.data.pagination?.total || 0;
   } catch (_err) {
     likedArticles.value = [];
   } finally {
@@ -101,9 +187,13 @@ async function fetchMyCollections() {
   try {
     collectionsLoading.value = true;
     const { data } = await request.get("/users/me/collections", {
-      params: { page: 1, pageSize: 6 },
+      params: {
+        page: collectionsPagination.page,
+        pageSize: collectionsPagination.pageSize,
+      },
     });
     collectedArticles.value = data.data.list || [];
+    collectionsPagination.total = data.data.pagination?.total || 0;
   } catch (_err) {
     collectedArticles.value = [];
   } finally {
@@ -138,26 +228,95 @@ async function saveProfile() {
   }
 }
 
+async function submitChangePassword() {
+  try {
+    const valid = await passwordFormRef.value?.validate();
+    if (!valid) {
+      return;
+    }
+
+    passwordLoading.value = true;
+    await request.put("/users/me/password", {
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword,
+    });
+
+    passwordForm.oldPassword = "";
+    passwordForm.newPassword = "";
+    passwordForm.confirmPassword = "";
+    message.success("密码修改成功");
+  } catch (error) {
+    message.error(error?.response?.data?.message || "密码修改失败");
+  } finally {
+    passwordLoading.value = false;
+  }
+}
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    activeTab.value = normalizeTab(String(tab || "profile"));
+  },
+  { immediate: true },
+);
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    if (tab === "likes") {
+      fetchMyLikes();
+    }
+
+    if (tab === "collections") {
+      fetchMyCollections();
+    }
+  },
+);
+
 onMounted(async () => {
-  await Promise.all([fetchProfile(), fetchMyLikes(), fetchMyCollections()]);
+  await fetchProfile();
+  if (activeTab.value === "likes") {
+    await fetchMyLikes();
+  }
+
+  if (activeTab.value === "collections") {
+    await fetchMyCollections();
+  }
 });
 </script>
 
 <template>
   <main class="profile-page page-block">
     <section class="container profile-shell">
-      <el-card class="profile-side" shadow="never">
-        <el-avatar :size="84" :src="form.avatarUrl">
-          {{ form.username ? form.username[0]?.toUpperCase() : "U" }}
-        </el-avatar>
-        <h3>{{ form.nickname || form.username || "未命名用户" }}</h3>
-        <p>{{ form.email || "-" }}</p>
-      </el-card>
+      <aside class="profile-side">
+        <div class="user-card">
+          <el-avatar :size="72" :src="form.avatarUrl">
+            {{ form.username ? form.username[0]?.toUpperCase() : "U" }}
+          </el-avatar>
+          <h3>{{ form.nickname || form.username || "未命名用户" }}</h3>
+          <p>{{ form.email || "-" }}</p>
+        </div>
 
-      <el-card class="profile-main" shadow="never">
-        <p class="kicker">PROFILE SETTINGS</p>
-        <h2>个人信息</h2>
+        <button
+          v-for="item in tabItems"
+          :key="item.key"
+          type="button"
+          class="tab-btn"
+          :class="{ active: activeTab === item.key }"
+          @click="switchTab(item.key)"
+        >
+          {{ item.label }}
+        </button>
+      </aside>
+
+      <section class="profile-main">
+        <header class="main-head">
+          <p class="kicker">PROFILE CENTER</p>
+          <h2>{{ activeTabTitle }}</h2>
+        </header>
+
         <el-form
+          v-if="activeTab === 'profile'"
           ref="formRef"
           :model="form"
           :rules="rules"
@@ -212,40 +371,121 @@ onMounted(async () => {
           </el-button>
         </el-form>
 
-        <div class="interest-grid">
-          <section class="interest-block" v-loading="likesLoading">
-            <h3>我的点赞</h3>
-            <el-empty
-              v-if="!likesLoading && !likedArticles.length"
-              description="暂无点赞文章"
+        <el-form
+          v-if="activeTab === 'security'"
+          ref="passwordFormRef"
+          :rules="passwordRules"
+          :model="passwordForm"
+          label-position="top"
+          @submit.prevent="submitChangePassword"
+        >
+          <el-form-item label="旧密码" prop="oldPassword">
+            <el-input
+              v-model="passwordForm.oldPassword"
+              type="password"
+              show-password
+              placeholder="请输入旧密码"
             />
-            <div
-              v-for="item in likedArticles"
-              :key="`like-${item.id}`"
-              class="interest-item"
-            >
-              <strong>{{ item.title || "未命名文章" }}</strong>
-              <p>{{ item.excerpt || "暂无摘要" }}</p>
-            </div>
-          </section>
+          </el-form-item>
+          <el-form-item label="新密码" prop="newPassword">
+            <el-input
+              v-model="passwordForm.newPassword"
+              type="password"
+              show-password
+              placeholder="请输入新密码"
+            />
+          </el-form-item>
+          <el-form-item label="确认新密码" prop="confirmPassword">
+            <el-input
+              v-model="passwordForm.confirmPassword"
+              type="password"
+              show-password
+              placeholder="请再次输入新密码"
+            />
+          </el-form-item>
+          <el-button
+            type="primary"
+            :loading="passwordLoading"
+            @click="submitChangePassword"
+          >
+            提交修改
+          </el-button>
+        </el-form>
 
-          <section class="interest-block" v-loading="collectionsLoading">
-            <h3>我的收藏</h3>
-            <el-empty
-              v-if="!collectionsLoading && !collectedArticles.length"
-              description="暂无收藏文章"
-            />
-            <div
-              v-for="item in collectedArticles"
-              :key="`collect-${item.id}`"
-              class="interest-item"
-            >
-              <strong>{{ item.title || "未命名文章" }}</strong>
-              <p>{{ item.excerpt || "暂无摘要" }}</p>
+        <section
+          v-if="activeTab === 'likes'"
+          class="list-tab"
+          v-loading="likesLoading"
+        >
+          <el-empty
+            v-if="!likesLoading && !likedArticles.length"
+            description="暂无点赞文章"
+          />
+          <article
+            v-for="item in likedArticles"
+            :key="`like-${item.id}`"
+            class="interest-item"
+          >
+            <h3 @click="goArticleDetail(item.id)">
+              {{ item.title || "未命名文章" }}
+            </h3>
+            <p>{{ item.excerpt || "暂无摘要" }}</p>
+            <div class="item-meta">
+              <span
+                >更新时间：{{
+                  formatDate(item.updatedAt || item.createdAt)
+                }}</span
+              >
             </div>
-          </section>
-        </div>
-      </el-card>
+          </article>
+          <div class="pager-wrap">
+            <el-pagination
+              v-model:current-page="likesPagination.page"
+              :page-size="likesPagination.pageSize"
+              :total="likesPagination.total"
+              layout="prev, pager, next"
+              @current-change="fetchMyLikes"
+            />
+          </div>
+        </section>
+
+        <section
+          v-if="activeTab === 'collections'"
+          class="list-tab"
+          v-loading="collectionsLoading"
+        >
+          <el-empty
+            v-if="!collectionsLoading && !collectedArticles.length"
+            description="暂无收藏文章"
+          />
+          <article
+            v-for="item in collectedArticles"
+            :key="`collect-${item.id}`"
+            class="interest-item"
+          >
+            <h3 @click="goArticleDetail(item.id)">
+              {{ item.title || "未命名文章" }}
+            </h3>
+            <p>{{ item.excerpt || "暂无摘要" }}</p>
+            <div class="item-meta">
+              <span
+                >更新时间：{{
+                  formatDate(item.updatedAt || item.createdAt)
+                }}</span
+              >
+            </div>
+          </article>
+          <div class="pager-wrap">
+            <el-pagination
+              v-model:current-page="collectionsPagination.page"
+              :page-size="collectionsPagination.pageSize"
+              :total="collectionsPagination.total"
+              layout="prev, pager, next"
+              @current-change="fetchMyCollections"
+            />
+          </div>
+        </section>
+      </section>
     </section>
   </main>
 </template>
@@ -253,31 +493,64 @@ onMounted(async () => {
 <style scoped>
 .profile-shell {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 250px minmax(0, 1fr);
   gap: 14px;
 }
 
 .profile-side {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 14px;
   display: grid;
   align-content: start;
+  gap: 8px;
+}
+
+.user-card {
+  display: grid;
   justify-items: center;
   text-align: center;
-  gap: 10px;
-  padding-block: 26px;
-  background: rgba(255, 255, 255, 0.92);
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 4px;
 }
 
-.profile-side h3 {
-  margin: 2px 0 0;
+.user-card h3 {
+  margin: 10px 0 0;
 }
 
-.profile-side p {
-  margin: 0;
+.user-card p {
+  margin: 6px 0 0;
   color: var(--color-text-secondary);
 }
 
+.tab-btn {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: var(--color-text);
+  text-align: left;
+  padding: 10px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  border-color: #bdd3ff;
+  background: #eef4ff;
+  color: var(--color-primary-strong);
+}
+
 .profile-main {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.92);
+  padding: 16px;
+}
+
+.main-head {
+  margin-bottom: 12px;
 }
 
 .kicker {
@@ -289,7 +562,7 @@ onMounted(async () => {
 }
 
 h2 {
-  margin: 10px 0 18px;
+  margin: 8px 0 0;
   font-size: clamp(24px, 3vw, 34px);
 }
 
@@ -297,12 +570,6 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-}
-
-.upload-tip {
-  margin: 8px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 12px;
 }
 
 .avatar-uploader {
@@ -353,38 +620,41 @@ h2 {
   font-size: 13px;
 }
 
-.interest-grid {
-  margin-top: 22px;
+.list-tab {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
-.interest-block {
+.interest-item {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: #f9fbff;
   padding: 12px;
 }
 
-.interest-block h3 {
-  margin: 0 0 10px;
+.interest-item h3 {
+  margin: 0;
+  cursor: pointer;
 }
 
-.interest-item {
-  border-top: 1px dashed #dbe5f4;
-  padding-top: 8px;
-  margin-top: 8px;
-}
-
-.interest-item strong {
-  display: block;
+.interest-item h3:hover {
+  color: var(--color-primary);
 }
 
 .interest-item p {
-  margin: 6px 0 0;
+  margin: 8px 0;
+  color: var(--color-text-secondary);
+}
+
+.item-meta {
   color: var(--color-text-secondary);
   font-size: 13px;
+}
+
+.pager-wrap {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 @media (max-width: 900px) {
@@ -393,10 +663,6 @@ h2 {
   }
 
   .grid-2 {
-    grid-template-columns: 1fr;
-  }
-
-  .interest-grid {
     grid-template-columns: 1fr;
   }
 }

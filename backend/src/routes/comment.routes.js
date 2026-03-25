@@ -7,11 +7,12 @@ const {
     validateArticleIdParam,
     validateCommentIdParam,
     validateCommentCreate,
+    validateCommentListQuery,
 } = require('../validators/comment.validator');
 
 const router = express.Router();
 
-router.get('/articles/:id/comments', optionalAuthMiddleware, validate(validateArticleIdParam), commentController.listByArticle);
+router.get('/articles/:id/comments', optionalAuthMiddleware, validate(validateArticleIdParam), validate(validateCommentListQuery), commentController.listByArticle);
 router.post('/articles/:id/comments', authMiddleware, validate(validateArticleIdParam), validate(validateCommentCreate), commentController.create);
 
 router.post('/comments/:id/like', authMiddleware, validate(validateCommentIdParam), commentController.like);

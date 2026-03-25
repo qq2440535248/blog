@@ -58,12 +58,22 @@ export function bindMarkdownCodeCopy(container, message, options = {}) {
     }
 
     const toggleCodeTheme = options?.toggleCodeTheme;
+    const getCodeTheme = options?.getCodeTheme;
+
+    const applyThemeButtonText = () => {
+        const currentTheme = getCodeTheme?.() || 'light';
+        const buttons = container.querySelectorAll('.code-theme-btn');
+        buttons.forEach((button) => {
+            button.textContent = currentTheme === 'dark' ? '切换浅色' : '切换深色';
+        });
+    };
 
     const handleClick = async (event) => {
         const themeButton = event.target.closest('.code-theme-btn');
         if (themeButton) {
             try {
                 await toggleCodeTheme?.();
+                applyThemeButtonText();
             } catch (_err) {
                 message?.error?.('切换代码主题失败');
             }
@@ -93,6 +103,8 @@ export function bindMarkdownCodeCopy(container, message, options = {}) {
             message?.error?.('复制失败，请手动复制');
         }
     };
+
+    applyThemeButtonText();
 
     container.addEventListener('click', handleClick);
     return () => {

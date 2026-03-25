@@ -1,6 +1,8 @@
 import { ref, watch } from "vue";
 
 const STORAGE_KEY = "code_theme";
+const sharedTheme = ref(getInitialTheme());
+let initialized = false;
 
 function getInitialTheme() {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -14,18 +16,19 @@ function getInitialTheme() {
 }
 
 export function useCodeTheme() {
-    const theme = ref(getInitialTheme());
-
-    watch(theme, (next) => {
-        localStorage.setItem(STORAGE_KEY, next);
-    });
+    if (!initialized) {
+        watch(sharedTheme, (next) => {
+            localStorage.setItem(STORAGE_KEY, next);
+        }, { immediate: true });
+        initialized = true;
+    }
 
     function toggleTheme() {
-        theme.value = theme.value === "dark" ? "light" : "dark";
+        sharedTheme.value = sharedTheme.value === "dark" ? "light" : "dark";
     }
 
     return {
-        codeTheme: theme,
+        codeTheme: sharedTheme,
         toggleCodeTheme: toggleTheme,
     };
 }

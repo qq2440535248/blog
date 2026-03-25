@@ -110,7 +110,7 @@ onMounted(fetchFeed);
       <div class="feed-head">
         <div>
           <p class="feed-kicker">PUBLIC FEED</p>
-          <h2>最新发布</h2>
+          <h2>文章广场</h2>
         </div>
         <div class="feed-search">
           <el-input

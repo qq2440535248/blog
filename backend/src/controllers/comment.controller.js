@@ -1,6 +1,12 @@
 const { Article, Comment, CommentLike, User } = require('../models');
 const { success, fail, ERROR_CODES } = require('../utils/http');
 
+function parsePagination(query) {
+    const page = Math.max(Number(query.page || 1), 1);
+    const pageSize = Math.min(Math.max(Number(query.pageSize || 10), 1), 10);
+    return { page, pageSize, offset: (page - 1) * pageSize };
+}
+
 function escapeHtml(input) {
     return String(input)
         .replace(/&/g, '&amp;')
@@ -22,35 +28,21 @@ function canReadArticle(article, auth) {
     return Boolean(auth && Number(auth.userId) === Number(article.userId));
 }
 
-function buildCommentTree(comments, likedSet) {
-    const byId = new Map();
-
-    comments.forEach((comment) => {
-        byId.set(comment.id, {
-            id: comment.id,
-            articleId: comment.articleId,
-            parentCommentId: comment.parentCommentId,
-            content: comment.content,
-            likesCount: comment.likesCount,
-            liked: likedSet.has(comment.id),
-            createdAt: comment.createdAt,
-            updatedAt: comment.updatedAt,
-            user: comment.user,
-            replies: [],
-        });
-    });
-
-    const roots = [];
-    byId.forEach((node) => {
-        if (node.parentCommentId && byId.has(node.parentCommentId)) {
-            byId.get(node.parentCommentId).replies.push(node);
-            return;
-        }
-
-        roots.push(node);
-    });
-
-    return roots;
+function toNode(comment, likedSet) {
+    return {
+        id: comment.id,
+        articleId: comment.articleId,
+        parentCommentId: comment.parentCommentId,
+        replyToCommentId: comment.replyToCommentId,
+        content: comment.content,
+        likesCount: comment.likesCount,
+        liked: likedSet.has(comment.id),
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+        user: comment.user,
+        replyToUser: comment.replyToComment?.user || null,
+        replies: [],
+    };
 }
 
 async function refreshCommentLikesCount(commentId) {
@@ -62,6 +54,7 @@ async function refreshCommentLikesCount(commentId) {
 exports.listByArticle = async (req, res, next) => {
     try {
         const articleId = Number(req.params.id);
+        const { page, pageSize, offset } = parsePagination(req.query);
         const article = await Article.findByPk(articleId, {
             attributes: ['id', 'userId', 'status'],
         });
@@ -70,8 +63,11 @@ exports.listByArticle = async (req, res, next) => {
             return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
-        const comments = await Comment.findAll({
-            where: { articleId },
+        const { rows: roots, count } = await Comment.findAndCountAll({
+            where: {
+                articleId,
+                parentCommentId: null,
+            },
             include: [
                 {
                     model: User,
@@ -79,8 +75,42 @@ exports.listByArticle = async (req, res, next) => {
                     attributes: ['id', 'username', 'nickname', 'avatarUrl'],
                 },
             ],
-            order: [['createdAt', 'ASC'], ['id', 'ASC']],
+            order: [['createdAt', 'DESC'], ['id', 'DESC']],
+            offset,
+            limit: pageSize,
         });
+
+        const rootIds = roots.map((item) => item.id);
+        const replies = rootIds.length
+            ? await Comment.findAll({
+                where: {
+                    articleId,
+                    parentCommentId: rootIds,
+                },
+                include: [
+                    {
+                        model: User,
+                        as: 'user',
+                        attributes: ['id', 'username', 'nickname', 'avatarUrl'],
+                    },
+                    {
+                        model: Comment,
+                        as: 'replyToComment',
+                        attributes: ['id'],
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['id', 'username', 'nickname', 'avatarUrl'],
+                            },
+                        ],
+                    },
+                ],
+                order: [['createdAt', 'ASC'], ['id', 'ASC']],
+            })
+            : [];
+
+        const comments = [...roots, ...replies];
 
         let likedSet = new Set();
         if (req.auth?.userId && comments.length > 0) {
@@ -96,8 +126,28 @@ exports.listByArticle = async (req, res, next) => {
             likedSet = new Set(likes.map((like) => like.commentId));
         }
 
-        const list = buildCommentTree(comments, likedSet);
-        return success(res, { list });
+        const rootMap = new Map();
+        roots.forEach((root) => {
+            rootMap.set(root.id, toNode(root, likedSet));
+        });
+
+        replies.forEach((reply) => {
+            const rootNode = rootMap.get(reply.parentCommentId);
+            if (!rootNode) {
+                return;
+            }
+
+            rootNode.replies.push(toNode(reply, likedSet));
+        });
+
+        return success(res, {
+            list: roots.map((root) => rootMap.get(root.id)),
+            pagination: {
+                page,
+                pageSize,
+                total: count,
+            },
+        });
     } catch (err) {
         return next(err);
     }
@@ -116,21 +166,27 @@ exports.create = async (req, res, next) => {
 
         const { content, parentCommentId = null } = req.body;
         const cleanContent = escapeHtml(content.trim());
+        let normalizedParentCommentId = null;
+        let replyToCommentId = null;
 
         if (parentCommentId) {
             const parent = await Comment.findByPk(Number(parentCommentId), {
-                attributes: ['id', 'articleId'],
+                attributes: ['id', 'articleId', 'parentCommentId'],
             });
 
             if (!parent || Number(parent.articleId) !== articleId) {
                 return fail(res, '父评论不存在', 400, ERROR_CODES.BAD_REQUEST);
             }
+
+            normalizedParentCommentId = parent.parentCommentId || parent.id;
+            replyToCommentId = parent.id;
         }
 
         const created = await Comment.create({
             userId: req.auth.userId,
             articleId,
-            parentCommentId: parentCommentId || null,
+            parentCommentId: normalizedParentCommentId,
+            replyToCommentId,
             content: cleanContent,
         });
 
@@ -140,6 +196,18 @@ exports.create = async (req, res, next) => {
                     model: User,
                     as: 'user',
                     attributes: ['id', 'username', 'nickname', 'avatarUrl'],
+                },
+                {
+                    model: Comment,
+                    as: 'replyToComment',
+                    attributes: ['id'],
+                    include: [
+                        {
+                            model: User,
+                            as: 'user',
+                            attributes: ['id', 'username', 'nickname', 'avatarUrl'],
+                        },
+                    ],
                 },
             ],
         });

@@ -5,7 +5,6 @@ const HomeView = () => import('../views/home/HomeView.vue');
 const LoginView = () => import('../views/auth/LoginView.vue');
 const RegisterView = () => import('../views/auth/RegisterView.vue');
 const ProfileView = () => import('../views/auth/ProfileView.vue');
-const ChangePasswordView = () => import('../views/auth/ChangePasswordView.vue');
 const ArticleListView = () => import('../views/articles/ArticleListView.vue');
 const ArticleDetailView = () => import('../views/articles/ArticleDetailView.vue');
 const ArticleEditorView = () => import('../views/articles/ArticleEditorView.vue');
@@ -40,7 +39,7 @@ const routes = [
     {
         path: '/change-password',
         name: 'change-password',
-        component: ChangePasswordView,
+        redirect: '/profile?tab=security',
         meta: { requiresAuth: true },
     },
     {

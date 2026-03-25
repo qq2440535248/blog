@@ -193,6 +193,29 @@ async function pickHotTag(name) {
   }
 }
 
+async function normalizeTagIds(rawTagIds = []) {
+  const ids = [];
+
+  for (const item of rawTagIds) {
+    if (typeof item === "number") {
+      ids.push(item);
+      continue;
+    }
+
+    if (/^\d+$/.test(String(item))) {
+      ids.push(Number(item));
+      continue;
+    }
+
+    const created = await ensureTag(item);
+    if (created?.id) {
+      ids.push(created.id);
+    }
+  }
+
+  return Array.from(new Set(ids));
+}
+
 async function fetchDetail() {
   if (isDraftEdit.value) {
     const { data } = await request.get(`/drafts/${route.params.id}`);
@@ -231,7 +254,7 @@ async function saveDraftSilently() {
     excerpt: form.excerpt,
     content: form.content,
     categoryId: form.categoryId,
-    tagIds: form.tagIds,
+    tagIds: await normalizeTagIds(form.tagIds),
   };
 
   if (draftId.value) {
@@ -264,7 +287,7 @@ async function saveArticle(saveAsDraft = false) {
       content: form.content,
       status: form.status,
       categoryId: form.categoryId,
-      tagIds: form.tagIds,
+      tagIds: await normalizeTagIds(form.tagIds),
     };
 
     if (isEdit.value && !isDraftEdit.value) {
@@ -303,6 +326,7 @@ onMounted(async () => {
 
     unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message, {
       toggleCodeTheme,
+      getCodeTheme: () => codeTheme.value,
     });
   } catch (_err) {
     message.error(getApiErrorMessage(_err, "初始化编辑器失败"));
@@ -338,6 +362,7 @@ watch(
     }
     unbindCodeCopy = bindMarkdownCodeCopy(el, message, {
       toggleCodeTheme,
+      getCodeTheme: () => codeTheme.value,
     });
   },
 );
@@ -403,6 +428,9 @@ watch(
                 <el-select
                   v-model="form.tagIds"
                   multiple
+                  filterable
+                  allow-create
+                  default-first-option
                   placeholder="请选择标签"
                 >
                   <el-option

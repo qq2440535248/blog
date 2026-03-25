@@ -88,13 +88,6 @@ watch(
             草稿
           </router-link>
           <router-link
-            v-if="authStore.isAuthenticated"
-            :class="{ active: isActive('/taxonomy') }"
-            to="/taxonomy"
-          >
-            分类标签
-          </router-link>
-          <router-link
             v-if="authStore.isAuthenticated && isAdmin"
             :class="{ active: isActive('/moderation') }"
             to="/moderation"
@@ -107,13 +100,6 @@ watch(
             to="/profile"
           >
             个人中心
-          </router-link>
-          <router-link
-            v-if="authStore.isAuthenticated"
-            :class="{ active: isActive('/change-password') }"
-            to="/change-password"
-          >
-            安全设置
           </router-link>
           <router-link v-if="!authStore.isAuthenticated" to="/login"
             >登录</router-link

@@ -38,8 +38,24 @@ function validateCommentCreate(req) {
     return true;
 }
 
+function validateCommentListQuery(req) {
+    const page = req.query.page;
+    const pageSize = req.query.pageSize;
+
+    if (page !== undefined && !isPositiveInt(Number(page))) {
+        return 'page 必须是正整数';
+    }
+
+    if (pageSize !== undefined && !isPositiveInt(Number(pageSize))) {
+        return 'pageSize 必须是正整数';
+    }
+
+    return true;
+}
+
 module.exports = {
     validateArticleIdParam,
     validateCommentIdParam,
     validateCommentCreate,
+    validateCommentListQuery,
 };

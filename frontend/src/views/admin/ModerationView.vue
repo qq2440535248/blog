@@ -84,7 +84,9 @@ async function fetchLogs(articleId) {
 
   try {
     logsLoading.value = true;
-    const { data } = await request.get(`/articles/${articleId}/moderation-logs`);
+    const { data } = await request.get(
+      `/articles/${articleId}/moderation-logs`,
+    );
     logs.value = data?.data?.list || [];
   } catch (_err) {
     logs.value = [];
@@ -254,7 +256,9 @@ onMounted(bootstrap);
 
       <section class="logs-block" v-loading="logsLoading">
         <h3>治理日志</h3>
-        <p v-if="!selectedArticleId" class="logs-empty">请选择一篇文章查看最近 20 条日志</p>
+        <p v-if="!selectedArticleId" class="logs-empty">
+          请选择一篇文章查看最近 20 条日志
+        </p>
         <p v-else class="logs-tip">当前文章 ID：{{ selectedArticleId }}</p>
         <el-empty
           v-if="selectedArticleId && !logsLoading && !logs.length"
@@ -262,7 +266,9 @@ onMounted(bootstrap);
         />
         <article v-for="item in logs" :key="item.id" class="log-item">
           <div class="log-head">
-            <strong>{{ item.action === "takedown" ? "下架" : "恢复发布" }}</strong>
+            <strong>{{
+              item.action === "takedown" ? "下架" : "恢复发布"
+            }}</strong>
             <span>{{ formatDate(item.createdAt) }}</span>
           </div>
           <p>操作人：{{ getAdminName(item.adminUser) }}</p>

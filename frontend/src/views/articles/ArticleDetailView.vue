@@ -18,9 +18,11 @@ const renderedContent = ref("");
 const markdownContainerRef = ref();
 const commentsLoading = ref(false);
 const comments = ref([]);
+const commentPagination = ref({ page: 1, pageSize: 10, total: 0 });
 const commentContent = ref("");
 const replyContent = ref("");
-const replyTargetId = ref(null);
+const replyTargetRootId = ref(null);
+const replyTargetComment = ref(null);
 const actionLoading = ref(false);
 const expandedReplyMap = ref({});
 const { codeTheme, toggleCodeTheme } = useCodeTheme();
@@ -114,8 +116,17 @@ async function fetchCollectionState() {
 async function fetchComments() {
   try {
     commentsLoading.value = true;
-    const { data } = await request.get(`/articles/${route.params.id}/comments`);
+    const { data } = await request.get(
+      `/articles/${route.params.id}/comments`,
+      {
+        params: {
+          page: commentPagination.value.page,
+          pageSize: commentPagination.value.pageSize,
+        },
+      },
+    );
     comments.value = data.data.list || [];
+    commentPagination.value.total = data.data.pagination?.total || 0;
   } catch (_err) {
     comments.value = [];
     message.error("加载评论失败");
@@ -148,6 +159,18 @@ function getDisplayName(user) {
   return user.nickname || user.username || "匿名用户";
 }
 
+function getReplyTargetName(reply) {
+  return getDisplayName(reply?.replyToUser);
+}
+
+function getReplyPlaceholder() {
+  if (!replyTargetComment.value) {
+    return "回复这条评论";
+  }
+
+  return `回复 ${getDisplayName(replyTargetComment.value.user)}`;
+}
+
 function getVisibleReplies(comment) {
   const replies = comment?.replies || [];
   if (expandedReplyMap.value[comment.id]) {
@@ -169,26 +192,29 @@ function toggleReplies(comment) {
   };
 }
 
-function openReply(commentId) {
+function openReply(targetComment, rootComment) {
   if (!ensureLogin("回复评论")) {
     return;
   }
 
-  replyTargetId.value = commentId;
+  replyTargetRootId.value = rootComment?.id || targetComment?.id || null;
+  replyTargetComment.value = targetComment || null;
   replyContent.value = "";
 }
 
 function closeReply() {
-  replyTargetId.value = null;
+  replyTargetRootId.value = null;
+  replyTargetComment.value = null;
   replyContent.value = "";
 }
 
-async function submitComment(parentCommentId = null) {
-  if (!ensureLogin(parentCommentId ? "回复评论" : "发表评论")) {
+async function submitComment(mode = "comment") {
+  const isReply = mode === "reply";
+  if (!ensureLogin(isReply ? "回复评论" : "发表评论")) {
     return;
   }
 
-  const content = parentCommentId
+  const content = isReply
     ? replyContent.value.trim()
     : commentContent.value.trim();
   if (!content) {
@@ -198,24 +224,31 @@ async function submitComment(parentCommentId = null) {
 
   try {
     actionLoading.value = true;
+    const parentCommentId = isReply ? replyTargetComment.value?.id : null;
     await request.post(`/articles/${route.params.id}/comments`, {
       content,
       parentCommentId,
     });
 
-    if (parentCommentId) {
+    if (isReply) {
       closeReply();
     } else {
       commentContent.value = "";
+      commentPagination.value.page = 1;
     }
 
     await fetchComments();
-    message.success(parentCommentId ? "回复成功" : "评论成功");
+    message.success(isReply ? "回复成功" : "评论成功");
   } catch (error) {
     message.error(error?.response?.data?.message || "提交评论失败");
   } finally {
     actionLoading.value = false;
   }
+}
+
+function changeCommentPage(page) {
+  commentPagination.value.page = page;
+  fetchComments();
 }
 
 async function toggleCommentLike(comment) {
@@ -276,14 +309,22 @@ async function toggleCollection() {
 
   try {
     if (collected.value) {
-      await request.delete(`/articles/${route.params.id}/collect`);
+      const { data } = await request.delete(
+        `/articles/${route.params.id}/collect`,
+      );
       collected.value = false;
+      if (article.value) {
+        article.value.collectionsCount = data.data.collectionsCount;
+      }
       message.success("已取消收藏");
       return;
     }
 
-    await request.post(`/articles/${route.params.id}/collect`);
+    const { data } = await request.post(`/articles/${route.params.id}/collect`);
     collected.value = true;
+    if (article.value) {
+      article.value.collectionsCount = data.data.collectionsCount;
+    }
     message.success("收藏成功");
   } catch (_err) {
     message.error("操作失败");
@@ -323,6 +364,7 @@ onMounted(async () => {
   await refreshRenderedContent();
   unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message, {
     toggleCodeTheme,
+    getCodeTheme: () => codeTheme.value,
   });
 });
 
@@ -351,6 +393,7 @@ watch(
     }
     unbindCodeCopy = bindMarkdownCodeCopy(el, message, {
       toggleCodeTheme,
+      getCodeTheme: () => codeTheme.value,
     });
   },
 );
@@ -395,23 +438,6 @@ watch(
 
         <section class="comment-section">
           <h3>评论区</h3>
-          <el-input
-            v-model="commentContent"
-            type="textarea"
-            :rows="3"
-            maxlength="500"
-            show-word-limit
-            placeholder="写下你的评论，支持游客浏览，评论需登录"
-          />
-          <div class="comment-actions">
-            <el-button
-              type="primary"
-              :loading="actionLoading"
-              @click="submitComment(null)"
-            >
-              发表评论
-            </el-button>
-          </div>
 
           <div v-loading="commentsLoading" class="comment-list">
             <el-empty
@@ -435,26 +461,26 @@ watch(
                     comment.likesCount || 0
                   }})
                 </button>
-                <button type="button" @click="openReply(comment.id)">
+                <button type="button" @click="openReply(comment, comment)">
                   回复
                 </button>
               </div>
 
-              <div v-if="replyTargetId === comment.id" class="reply-editor">
+              <div v-if="replyTargetRootId === comment.id" class="reply-editor">
                 <el-input
                   v-model="replyContent"
                   type="textarea"
                   :rows="2"
                   maxlength="500"
                   show-word-limit
-                  placeholder="回复这条评论"
+                  :placeholder="getReplyPlaceholder()"
                 />
                 <div class="reply-actions">
                   <el-button
                     size="small"
                     type="primary"
                     :loading="actionLoading"
-                    @click="submitComment(comment.id)"
+                    @click="submitComment('reply')"
                   >
                     提交回复
                   </el-button>
@@ -474,12 +500,19 @@ watch(
                       new Date(reply.createdAt).toLocaleString()
                     }}</span>
                   </header>
+                  <p class="reply-to-name">
+                    {{ getDisplayName(reply.user) }} 回复
+                    {{ getReplyTargetName(reply) }}
+                  </p>
                   <p class="comment-content">{{ reply.content }}</p>
                   <div class="comment-ops">
                     <button type="button" @click="toggleCommentLike(reply)">
                       {{ reply.liked ? "已赞" : "点赞" }} ({{
                         reply.likesCount || 0
                       }})
+                    </button>
+                    <button type="button" @click="openReply(reply, comment)">
+                      回复
                     </button>
                   </div>
                 </article>
@@ -507,6 +540,36 @@ watch(
                 </button>
               </div>
             </article>
+          </div>
+
+          <div class="comment-pager">
+            <el-pagination
+              v-model:current-page="commentPagination.page"
+              :page-size="commentPagination.pageSize"
+              :total="commentPagination.total"
+              layout="prev, pager, next"
+              @current-change="changeCommentPage"
+            />
+          </div>
+
+          <div class="comment-input-wrap">
+            <el-input
+              v-model="commentContent"
+              type="textarea"
+              :rows="3"
+              maxlength="500"
+              show-word-limit
+              placeholder="写下你的评论，支持游客浏览，评论需登录"
+            />
+            <div class="comment-actions">
+              <el-button
+                type="primary"
+                :loading="actionLoading"
+                @click="submitComment('comment')"
+              >
+                发表评论
+              </el-button>
+            </div>
           </div>
         </section>
       </article>
@@ -542,7 +605,10 @@ watch(
           @click="toggleLike"
         >
           <span class="thumb-icon">👍</span>
-          <span>{{ liked ? "已点赞" : "点赞文章" }}</span>
+          <span
+            >{{ liked ? "已点赞" : "点赞文章" }}
+            {{ article?.likesCount || 0 }}</span
+          >
         </el-button>
         <el-button
           class="collect-btn"
@@ -550,9 +616,11 @@ watch(
           plain
           @click="toggleCollection"
         >
-          <span>{{ collected ? "★ 已收藏" : "☆ 收藏文章" }}</span>
+          <span
+            >{{ collected ? "★ 已收藏" : "☆ 收藏文章" }}
+            {{ article?.collectionsCount || 0 }}</span
+          >
         </el-button>
-        <p class="like-count">当前点赞：{{ article?.likesCount || 0 }}</p>
       </aside>
     </section>
   </main>
@@ -640,6 +708,10 @@ h1 {
   margin-top: 10px;
 }
 
+.comment-input-wrap {
+  margin-top: 14px;
+}
+
 .comment-list {
   margin-top: 14px;
   display: grid;
@@ -710,6 +782,18 @@ h1 {
   gap: 8px;
 }
 
+.reply-to-name {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.comment-pager {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .side-card {
   position: sticky;
   top: 18px;
@@ -778,12 +862,6 @@ h1 {
 .thumb-icon {
   font-size: 16px;
   line-height: 1;
-}
-
-.like-count {
-  margin-top: 12px;
-  font-weight: 600;
-  color: var(--color-text);
 }
 
 @media (max-width: 980px) {
