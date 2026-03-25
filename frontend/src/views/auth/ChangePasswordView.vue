@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
 import request from "../../utils/request";
+import message from "../../utils/message";
 
 const loading = ref(false);
 const formRef = ref();
@@ -49,12 +49,12 @@ async function submitChangePassword() {
       oldPassword: form.oldPassword,
       newPassword: form.newPassword,
     });
-    ElMessage.success("密码修改成功");
+    message.success("密码修改成功");
     form.oldPassword = "";
     form.newPassword = "";
     form.confirmPassword = "";
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || "密码修改失败");
+    message.error(error?.response?.data?.message || "密码修改失败");
   } finally {
     loading.value = false;
   }

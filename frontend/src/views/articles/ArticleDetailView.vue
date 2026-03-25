@@ -1,9 +1,9 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
 import request from "../../utils/request";
 import { renderMarkdown } from "../../utils/markdown";
+import message from "../../utils/message";
 
 const route = useRoute();
 const router = useRouter();
@@ -54,7 +54,7 @@ async function fetchDetail() {
     const { data } = await request.get(`/articles/${route.params.id}`);
     article.value = data.data;
   } catch (_err) {
-    ElMessage.error("加载详情失败");
+    message.error("加载详情失败");
   } finally {
     loading.value = false;
   }
@@ -88,7 +88,7 @@ async function toggleLike() {
       article.value.likesCount = data.data.likesCount;
     }
   } catch (_err) {
-    ElMessage.error("操作失败");
+    message.error("操作失败");
   }
 }
 
@@ -126,8 +126,14 @@ watch(
         <h3>互动</h3>
         <p>为这篇内容添加你的反馈。</p>
         <div class="side-actions">
-          <el-button plain @click="router.push('/articles')">返回列表</el-button>
-          <el-button type="success" plain @click="router.push(`/articles/${route.params.id}/edit`)">
+          <el-button plain @click="router.push('/articles')"
+            >返回列表</el-button
+          >
+          <el-button
+            type="success"
+            plain
+            @click="router.push(`/articles/${route.params.id}/edit`)"
+          >
             编辑文章
           </el-button>
         </div>

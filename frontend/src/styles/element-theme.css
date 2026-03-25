@@ -32,3 +32,9 @@
 .el-button {
   font-weight: 600;
 }
+
+.el-message {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}

@@ -1,9 +1,9 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
 import request from "../../utils/request";
 import { getCache, removeCache, setCache } from "../../utils/cache";
+import message from "../../utils/message";
 
 const router = useRouter();
 const loading = ref(false);
@@ -38,7 +38,7 @@ async function fetchArticles() {
       2 * 60 * 1000,
     );
   } catch (_err) {
-    ElMessage.error("加载文章失败");
+    message.error("加载文章失败");
   } finally {
     loading.value = false;
   }
@@ -58,10 +58,10 @@ async function removeArticle(id) {
     removeCache(
       `articles:${filters.q}:${pagination.page}:${pagination.pageSize}`,
     );
-    ElMessage.success("删除成功");
+    message.success("删除成功");
     fetchArticles();
   } catch (_err) {
-    ElMessage.error("删除失败");
+    message.error("删除失败");
   }
 }
 
@@ -137,7 +137,12 @@ onMounted(fetchArticles);
         </div>
 
         <div class="mobile-cards">
-          <el-card v-for="item in articles" :key="item.id" class="mobile-card" shadow="never">
+          <el-card
+            v-for="item in articles"
+            :key="item.id"
+            class="mobile-card"
+            shadow="never"
+          >
             <div class="mobile-card-top">
               <strong>{{ item.title || "未命名文章" }}</strong>
               <el-tag :type="item.status === 'published' ? 'success' : 'info'">
@@ -146,16 +151,27 @@ onMounted(fetchArticles);
             </div>
             <p>{{ item.excerpt || "暂无摘要" }}</p>
             <div class="mobile-actions">
-              <el-button text type="primary" @click="router.push(`/articles/${item.id}`)">
+              <el-button
+                text
+                type="primary"
+                @click="router.push(`/articles/${item.id}`)"
+              >
                 详情
               </el-button>
-              <el-button text type="primary" @click="goEditor(item.id)">编辑</el-button>
-              <el-button text type="danger" @click="removeArticle(item.id)">删除</el-button>
+              <el-button text type="primary" @click="goEditor(item.id)"
+                >编辑</el-button
+              >
+              <el-button text type="danger" @click="removeArticle(item.id)"
+                >删除</el-button
+              >
             </div>
           </el-card>
         </div>
 
-        <el-empty v-if="!loading && !hasArticles" description="没有找到匹配文章" />
+        <el-empty
+          v-if="!loading && !hasArticles"
+          description="没有找到匹配文章"
+        />
       </el-card>
 
       <div class="pager">

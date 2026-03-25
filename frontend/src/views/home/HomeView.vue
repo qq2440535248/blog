@@ -1,15 +1,15 @@
 <script setup>
-import { ElMessage } from "element-plus";
 import { useAuthStore } from "../../stores/auth";
+import message from "../../utils/message";
 
 const authStore = useAuthStore();
 
 async function logout() {
   try {
     await authStore.logout();
-    ElMessage.success("已退出登录");
+    message.success("已退出登录");
   } catch (_err) {
-    ElMessage.error("退出失败，请稍后重试");
+    message.error("退出失败，请稍后重试");
   }
 }
 </script>

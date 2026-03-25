@@ -1,9 +1,9 @@
 <script setup>
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
 import { useAuthStore } from "../../stores/auth";
 import { getApiErrorMessage } from "../../utils/request";
+import message from "../../utils/message";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -65,10 +65,10 @@ async function submitRegister() {
 
     loading.value = true;
     await authStore.register(payload);
-    ElMessage.success("注册成功");
+    message.success("注册成功");
     router.push("/");
   } catch (error) {
-    ElMessage.error(
+    message.error(
       error?.userMessage || getApiErrorMessage(error, "注册失败"),
     );
   } finally {

@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
 import request from "../../utils/request";
+import message from "../../utils/message";
 
 const loading = ref(false);
 const formRef = ref();
@@ -24,7 +24,9 @@ const rules = {
         }
 
         const ok = /^https?:\/\/.+/i.test(value.trim());
-        callback(ok ? undefined : new Error("头像地址需以 http:// 或 https:// 开头"));
+        callback(
+          ok ? undefined : new Error("头像地址需以 http:// 或 https:// 开头"),
+        );
       },
       trigger: "blur",
     },
@@ -41,7 +43,7 @@ async function fetchProfile() {
     form.avatarUrl = profile.avatarUrl || "";
     form.bio = profile.bio || "";
   } catch (_err) {
-    ElMessage.error("加载个人信息失败");
+    message.error("加载个人信息失败");
   }
 }
 
@@ -58,9 +60,9 @@ async function saveProfile() {
       avatarUrl: form.avatarUrl.trim(),
       bio: form.bio.trim(),
     });
-    ElMessage.success("保存成功");
+    message.success("保存成功");
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || "保存失败");
+    message.error(error?.response?.data?.message || "保存失败");
   } finally {
     loading.value = false;
   }
@@ -83,7 +85,12 @@ onMounted(fetchProfile);
       <el-card class="profile-main" shadow="never">
         <p class="kicker">PROFILE SETTINGS</p>
         <h2>个人信息</h2>
-        <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+        <el-form
+          ref="formRef"
+          :model="form"
+          :rules="rules"
+          label-position="top"
+        >
           <div class="grid-2">
             <el-form-item label="用户名">
               <el-input v-model="form.username" disabled />

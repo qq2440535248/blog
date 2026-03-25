@@ -8,10 +8,10 @@ import {
   watch,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
 import request from "../../utils/request";
 import { getApiErrorMessage } from "../../utils/request";
 import { renderMarkdown } from "../../utils/markdown";
+import message from "../../utils/message";
 
 const route = useRoute();
 const router = useRouter();
@@ -138,6 +138,7 @@ async function saveDraftSilently() {
   const { data } = await request.post("/drafts", payload);
   draftId.value = data.data.id;
   saveStatus.value = "已创建自动草稿";
+  message.info("已创建自动草稿");
 }
 
 async function saveArticle(saveAsDraft = false) {
@@ -146,7 +147,7 @@ async function saveArticle(saveAsDraft = false) {
 
     if (saveAsDraft) {
       await saveDraftSilently();
-      ElMessage.success("草稿已保存");
+      message.success("草稿已保存");
       saveStatus.value = "草稿已手动保存";
       router.push("/drafts");
       return;
@@ -170,11 +171,11 @@ async function saveArticle(saveAsDraft = false) {
       }
     }
 
-    ElMessage.success("文章已保存");
+    message.success("文章已保存");
     saveStatus.value = "文章已发布";
     router.push("/articles");
   } catch (_err) {
-    ElMessage.error(getApiErrorMessage(_err, "保存失败"));
+    message.error(getApiErrorMessage(_err, "保存失败"));
   } finally {
     loading.value = false;
   }
@@ -194,7 +195,7 @@ onMounted(async () => {
       }
     }, 20000);
   } catch (_err) {
-    ElMessage.error(getApiErrorMessage(_err, "初始化编辑器失败"));
+    message.error(getApiErrorMessage(_err, "初始化编辑器失败"));
   }
 });
 
@@ -223,7 +224,9 @@ watch(
         <div class="header-right">
           <el-tag type="info" effect="plain">{{ saveStatus }}</el-tag>
           <el-tag type="success" effect="plain">字数 {{ wordCount }}</el-tag>
-          <el-tag type="warning" effect="plain">阅读 {{ readingMinutes }} 分钟</el-tag>
+          <el-tag type="warning" effect="plain"
+            >阅读 {{ readingMinutes }} 分钟</el-tag
+          >
         </div>
       </header>
 

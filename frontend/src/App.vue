@@ -1,8 +1,8 @@
 <script setup>
 import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
 import { useAuthStore } from "./stores/auth";
+import message from "./utils/message";
 
 const route = useRoute();
 const router = useRouter();
@@ -22,10 +22,10 @@ function isActive(path) {
 async function logout() {
   try {
     await authStore.logout();
-    ElMessage.success("已退出登录");
+    message.success("已退出登录");
     router.push("/login");
   } catch (_err) {
-    ElMessage.error("退出失败，请稍后重试");
+    message.error("退出失败，请稍后重试");
   }
 }
 

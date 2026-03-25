@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
 import request from "../../utils/request";
+import message from "../../utils/message";
 
 const router = useRouter();
 const loading = ref(false);
@@ -39,7 +39,7 @@ async function fetchDrafts() {
     drafts.value = data.data.list;
     pagination.total = data.data.pagination.total;
   } catch (_err) {
-    ElMessage.error("加载草稿失败");
+    message.error("加载草稿失败");
   } finally {
     loading.value = false;
   }
@@ -52,20 +52,20 @@ function editDraft(id) {
 async function publishDraft(id) {
   try {
     await request.post(`/drafts/${id}/publish`);
-    ElMessage.success("草稿发布成功");
+    message.success("草稿发布成功");
     fetchDrafts();
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || "草稿发布失败");
+    message.error(error?.response?.data?.message || "草稿发布失败");
   }
 }
 
 async function removeDraft(id) {
   try {
     await request.delete(`/drafts/${id}`);
-    ElMessage.success("草稿删除成功");
+    message.success("草稿删除成功");
     fetchDrafts();
   } catch (_err) {
-    ElMessage.error("草稿删除失败");
+    message.error("草稿删除失败");
   }
 }
 
@@ -89,42 +89,51 @@ onMounted(fetchDrafts);
       <el-card class="draft-card" shadow="never">
         <div class="table-wrap">
           <el-table v-loading="loading" :data="drafts" style="width: 100%">
-          <el-table-column prop="id" label="ID" width="80" />
-          <el-table-column label="标题" min-width="280">
-            <template #default="scope">
-              <div class="title-cell">
-                <strong>{{ scope.row.title || "未命名草稿" }}</strong>
-                <span>{{ scope.row.excerpt || "暂无摘要" }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="更新时间" width="180">
-            <template #default="scope">{{
-              formatDate(scope.row.updatedAt)
-            }}</template>
-          </el-table-column>
+            <el-table-column prop="id" label="ID" width="80" />
+            <el-table-column label="标题" min-width="280">
+              <template #default="scope">
+                <div class="title-cell">
+                  <strong>{{ scope.row.title || "未命名草稿" }}</strong>
+                  <span>{{ scope.row.excerpt || "暂无摘要" }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="更新时间" width="180">
+              <template #default="scope">{{
+                formatDate(scope.row.updatedAt)
+              }}</template>
+            </el-table-column>
             <el-table-column label="操作" width="280" fixed="right">
-            <template #default="scope">
-              <el-button text type="primary" @click="editDraft(scope.row.id)">
-                继续编辑
-              </el-button>
-              <el-button
-                text
-                type="success"
-                @click="publishDraft(scope.row.id)"
-              >
-                发布
-              </el-button>
-              <el-button text type="danger" @click="removeDraft(scope.row.id)">
-                删除
-              </el-button>
-            </template>
-          </el-table-column>
+              <template #default="scope">
+                <el-button text type="primary" @click="editDraft(scope.row.id)">
+                  继续编辑
+                </el-button>
+                <el-button
+                  text
+                  type="success"
+                  @click="publishDraft(scope.row.id)"
+                >
+                  发布
+                </el-button>
+                <el-button
+                  text
+                  type="danger"
+                  @click="removeDraft(scope.row.id)"
+                >
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </div>
 
-        <el-empty v-if="!loading && !hasDrafts" description="还没有草稿，开始写第一篇内容吧">
-          <el-button type="primary" @click="router.push('/articles/new')">立即创作</el-button>
+        <el-empty
+          v-if="!loading && !hasDrafts"
+          description="还没有草稿，开始写第一篇内容吧"
+        >
+          <el-button type="primary" @click="router.push('/articles/new')"
+            >立即创作</el-button
+          >
         </el-empty>
       </el-card>
 

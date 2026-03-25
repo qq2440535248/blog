@@ -1,8 +1,8 @@
 <script setup>
 import { onMounted, reactive, ref } from "vue";
-import { ElMessage } from "element-plus";
 import request from "../../utils/request";
 import { getCache, removeCache, setCache } from "../../utils/cache";
+import message from "../../utils/message";
 
 const categories = ref([]);
 const tags = ref([]);
@@ -29,7 +29,7 @@ async function fetchAll() {
     setCache("categories", categories.value, 5 * 60 * 1000);
     setCache("tags", tags.value, 5 * 60 * 1000);
   } catch (_err) {
-    ElMessage.error("加载分类标签失败");
+    message.error("加载分类标签失败");
   } finally {
     loading.value = false;
   }
@@ -42,10 +42,10 @@ async function createCategory() {
     await request.post("/categories", { name: form.category.trim() });
     removeCache("categories");
     form.category = "";
-    ElMessage.success("分类创建成功");
+    message.success("分类创建成功");
     fetchAll();
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || "分类创建失败");
+    message.error(error?.response?.data?.message || "分类创建失败");
   }
 }
 
@@ -56,10 +56,10 @@ async function createTag() {
     await request.post("/tags", { name: form.tag.trim() });
     removeCache("tags");
     form.tag = "";
-    ElMessage.success("标签创建成功");
+    message.success("标签创建成功");
     fetchAll();
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || "标签创建失败");
+    message.error(error?.response?.data?.message || "标签创建失败");
   }
 }
 
