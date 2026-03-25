@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
     const isAuthenticated = computed(() => Boolean(accessToken.value));
 
     function setTokens(tokens) {
+        // 登录/注册/刷新后统一写入令牌，保持状态来源一致。
         accessToken.value = tokens.accessToken || '';
         refreshToken.value = tokens.refreshToken || '';
 
@@ -21,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     function clearAuth() {
+        // 退出登录或鉴权失效时清空内存与本地缓存。
         accessToken.value = '';
         refreshToken.value = '';
         profile.value = null;
@@ -42,6 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function fetchMe() {
+        // 页面刷新后通过 /users/me 恢复角色与个人信息。
         const { data } = await request.get('/users/me');
         profile.value = data.data;
     }

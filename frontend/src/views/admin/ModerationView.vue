@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
 import request from "../../utils/request";
 import message from "../../utils/message";
 import { useAuthStore } from "../../stores/auth";
@@ -14,6 +13,7 @@ const list = ref([]);
 const logsLoading = ref(false);
 const selectedArticleId = ref(0);
 const logs = ref([]);
+const logsError = ref("");
 const pagination = reactive({
   page: 1,
   pageSize: 10,
@@ -78,19 +78,22 @@ function getAdminName(adminUser) {
 
 async function fetchLogs(articleId) {
   if (!articleId) {
+    logsError.value = "";
     logs.value = [];
     return;
   }
 
   try {
     logsLoading.value = true;
+    logsError.value = "";
     const { data } = await request.get(
       `/articles/${articleId}/moderation-logs`,
     );
     logs.value = data?.data?.list || [];
-  } catch (_err) {
+  } catch (error) {
     logs.value = [];
-    message.error("加载治理日志失败");
+    logsError.value = error?.response?.data?.message || "加载治理日志失败";
+    message.error(logsError.value);
   } finally {
     logsLoading.value = false;
   }
@@ -128,29 +131,18 @@ function resetFilters() {
 
 async function changeStatus(item, targetStatus) {
   const actionText = targetStatus === "draft" ? "下架" : "恢复发布";
-  let reason = "";
-  try {
-    const result = await ElMessageBox.prompt(
-      `请填写${actionText}原因（可选，最多 200 字）`,
-      `${actionText}确认`,
-      {
-        confirmButtonText: "确认",
-        cancelButtonText: "取消",
-        inputType: "textarea",
-        inputValue: "",
-        inputValidator: (value) => {
-          if (String(value || "").trim().length > 200) {
-            return "原因不能超过 200 字";
-          }
-
-          return true;
-        },
-      },
-    );
-    reason = String(result?.value || "").trim();
-  } catch (_err) {
+  // 使用浏览器原生交互兜底，避免弹层异常导致“点击无反应”。
+  const confirmed = window.confirm(`确认要${actionText}这篇文章吗？`);
+  if (!confirmed) {
     return;
   }
+
+  const reasonInput = window.prompt(`可选：填写${actionText}原因（最多 200 字）`, "");
+  if (reasonInput === null) {
+    return;
+  }
+
+  const reason = String(reasonInput || "").trim().slice(0, 200);
 
   try {
     actionLoadingId.value = item.id;
@@ -170,7 +162,10 @@ async function changeStatus(item, targetStatus) {
 }
 
 async function openLogs(item) {
+  // 先给用户即时反馈，再发起日志请求。
   selectedArticleId.value = item.id;
+  logsError.value = "";
+  message.info(`正在加载文章 ${item.id} 的治理日志`);
   await fetchLogs(item.id);
 }
 
@@ -260,6 +255,7 @@ onMounted(bootstrap);
           请选择一篇文章查看最近 20 条日志
         </p>
         <p v-else class="logs-tip">当前文章 ID：{{ selectedArticleId }}</p>
+        <p v-if="logsError" class="logs-error">{{ logsError }}</p>
         <el-empty
           v-if="selectedArticleId && !logsLoading && !logs.length"
           description="暂无治理日志"
@@ -394,6 +390,12 @@ h1 {
 .logs-tip {
   margin: 10px 0;
   color: var(--color-text-secondary);
+}
+
+.logs-error {
+  margin: 10px 0;
+  color: #c0392b;
+  font-weight: 600;
 }
 
 .log-item {

@@ -81,6 +81,7 @@ request.interceptors.response.use(
         originalRequest._retry = true;
 
         try {
+            // 并发 401 时只发起一次刷新请求，其余请求复用同一个 Promise。
             if (!refreshPromise) {
                 refreshPromise = refreshAuthTokens(refreshToken).finally(() => {
                     refreshPromise = null;
@@ -91,6 +92,7 @@ request.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return request(originalRequest);
         } catch (refreshError) {
+            // 刷新失败时统一清理本地令牌并跳转登录。
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             refreshError.userMessage = getApiErrorMessage(refreshError, '登录状态已过期，请重新登录');

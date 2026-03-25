@@ -1,4 +1,5 @@
 function getAdminEmails() {
+    // 支持多个管理员邮箱，使用英文逗号分隔。
     const raw = process.env.ADMIN_EMAILS || '';
     return raw
         .split(',')
@@ -20,6 +21,7 @@ function isAdminEmail(email) {
 }
 
 function getUserRole(user) {
+    // 当前项目基于邮箱白名单判定管理员身份。
     return isAdminEmail(user?.email) ? 'admin' : 'user';
 }
 

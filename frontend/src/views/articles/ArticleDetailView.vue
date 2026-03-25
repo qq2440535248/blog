@@ -4,7 +4,6 @@ import { useRoute, useRouter } from "vue-router";
 import request from "../../utils/request";
 import { bindMarkdownCodeCopy, renderMarkdown } from "../../utils/markdown";
 import message from "../../utils/message";
-import { useCodeTheme } from "../../composables/useCodeTheme";
 import { useAuthStore } from "../../stores/auth";
 
 const route = useRoute();
@@ -24,8 +23,8 @@ const replyContent = ref("");
 const replyTargetRootId = ref(null);
 const replyTargetComment = ref(null);
 const actionLoading = ref(false);
+const takedownLoading = ref(false);
 const expandedReplyMap = ref({});
-const { codeTheme, toggleCodeTheme } = useCodeTheme();
 let unbindCodeCopy = null;
 
 const statusTextMap = {
@@ -341,16 +340,29 @@ async function adminTakedown() {
     return;
   }
 
-  if (!window.confirm("确认将这篇文章下架为草稿状态吗？")) {
+  // 与治理台保持一致，优先保证操作有可见反馈。
+  const confirmed = window.confirm("确认将这篇文章下架为草稿状态吗？");
+  if (!confirmed) {
     return;
   }
 
+  const reasonInput = window.prompt("可选：填写下架原因（最多 200 字）", "");
+  if (reasonInput === null) {
+    return;
+  }
+
+  const reason = String(reasonInput || "").trim().slice(0, 200);
+
   try {
-    await request.patch(`/articles/${route.params.id}/takedown`);
+    takedownLoading.value = true;
+    message.info("正在下架文章...");
+    await request.patch(`/articles/${route.params.id}/takedown`, { reason });
     message.success("下架成功");
-    await fetchDetail();
+    router.replace("/");
   } catch (error) {
     message.error(error?.response?.data?.message || "下架失败");
+  } finally {
+    takedownLoading.value = false;
   }
 }
 
@@ -362,10 +374,7 @@ onMounted(async () => {
     fetchComments(),
   ]);
   await refreshRenderedContent();
-  unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message, {
-    toggleCodeTheme,
-    getCodeTheme: () => codeTheme.value,
-  });
+  unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message);
 });
 
 onUnmounted(() => {
@@ -391,10 +400,7 @@ watch(
     if (unbindCodeCopy) {
       unbindCodeCopy();
     }
-    unbindCodeCopy = bindMarkdownCodeCopy(el, message, {
-      toggleCodeTheme,
-      getCodeTheme: () => codeTheme.value,
-    });
+    unbindCodeCopy = bindMarkdownCodeCopy(el, message);
   },
 );
 </script>
@@ -432,7 +438,6 @@ watch(
         <div
           ref="markdownContainerRef"
           class="markdown-body"
-          :data-code-theme="codeTheme"
           v-html="renderedContent"
         />
 
@@ -593,6 +598,7 @@ watch(
             v-if="canModerate && article?.status === 'published'"
             type="warning"
             plain
+            :loading="takedownLoading"
             @click="adminTakedown"
           >
             下架文章
@@ -604,11 +610,10 @@ watch(
           plain
           @click="toggleLike"
         >
-          <span class="thumb-icon">👍</span>
-          <span
-            >{{ liked ? "已点赞" : "点赞文章" }}
-            {{ article?.likesCount || 0 }}</span
-          >
+          <span class="action-content">
+            <span class="action-icon">👍</span>
+            <span>{{ liked ? "已点赞" : "点赞文章" }} {{ article?.likesCount || 0 }}</span>
+          </span>
         </el-button>
         <el-button
           class="collect-btn"
@@ -616,10 +621,10 @@ watch(
           plain
           @click="toggleCollection"
         >
-          <span
-            >{{ collected ? "★ 已收藏" : "☆ 收藏文章" }}
-            {{ article?.collectionsCount || 0 }}</span
-          >
+          <span class="action-content">
+            <span class="action-icon">{{ collected ? "★" : "☆" }}</span>
+            <span>{{ collected ? "已收藏" : "收藏文章" }} {{ article?.collectionsCount || 0 }}</span>
+          </span>
         </el-button>
       </aside>
     </section>
@@ -833,7 +838,6 @@ h1 {
   margin-top: 2px;
   display: inline-flex;
   justify-content: center;
-  gap: 8px;
   border-color: #a3c5ff;
   color: #2c6ae7;
   background: #f2f7ff;
@@ -847,6 +851,8 @@ h1 {
 
 .collect-btn {
   width: 100%;
+  display: inline-flex;
+  justify-content: center;
   margin-left: 0;
   margin-top: 8px;
   border-color: #ffd89c;
@@ -860,7 +866,17 @@ h1 {
   background: #ffefcc;
 }
 
-.thumb-icon {
+.action-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2em;
   font-size: 16px;
   line-height: 1;
 }

@@ -29,6 +29,7 @@ const rules = {
 
 async function submitLogin() {
   try {
+    // 先走表单校验，避免发送无效请求。
     const valid = await formRef.value?.validate();
     if (!valid) {
       return;
@@ -42,6 +43,7 @@ async function submitLogin() {
     loading.value = true;
     await authStore.login(payload);
     message.success("登录成功");
+    // 支持登录后回跳到受保护页面。
     const redirect =
       typeof route.query.redirect === "string" ? route.query.redirect : "/";
     router.push(redirect);
@@ -58,13 +60,13 @@ async function submitLogin() {
     <section class="auth-shell container">
       <aside class="auth-brand">
         <p class="brand-kicker">PERSON BLOG</p>
-        <h1>开启高质量内容管理</h1>
-        <p>登录后可统一管理文章、草稿、分类与标签，保持创作流程稳定高效。</p>
+        <h1>登录后继续你的写作节奏</h1>
+        <p>进入工作台后可统一管理文章、草稿、分类与标签，快速完成发布与治理。</p>
       </aside>
 
       <section class="auth-card">
         <h2>登录账号</h2>
-        <p class="auth-subtitle">欢迎回来，继续你的内容创作。</p>
+        <p class="auth-subtitle">欢迎回来，立即进入内容管理台。</p>
 
         <el-form
           ref="formRef"

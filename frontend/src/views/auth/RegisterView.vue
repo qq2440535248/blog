@@ -18,6 +18,7 @@ const form = reactive({
 });
 
 const validateConfirmPassword = (_rule, value, callback) => {
+  // 二次密码校验放在前端即可即时反馈，减少无效提交。
   if (!value) {
     callback(new Error("请再次输入密码"));
     return;
@@ -52,6 +53,7 @@ const rules = {
 
 async function submitRegister() {
   try {
+    // 表单校验通过后再调用注册接口。
     const valid = await formRef.value?.validate();
     if (!valid) {
       return;
@@ -80,13 +82,13 @@ async function submitRegister() {
     <section class="auth-shell container">
       <aside class="auth-brand">
         <p class="brand-kicker">PERSON BLOG</p>
-        <h1>创建你的创作空间</h1>
-        <p>注册后即可发布文章、管理标签与分类，并在草稿箱中持续打磨内容。</p>
+        <h1>创建账号，开启内容创作</h1>
+        <p>注册后即可发布文章、管理标签与分类，并通过草稿与治理能力持续优化内容质量。</p>
       </aside>
 
       <section class="auth-card">
         <h2>注册账号</h2>
-        <p class="auth-subtitle">填写信息，立即开启你的博客工作台。</p>
+        <p class="auth-subtitle">填写基础信息，立即进入博客工作台。</p>
 
         <el-form
           ref="formRef"

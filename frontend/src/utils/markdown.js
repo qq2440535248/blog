@@ -13,6 +13,7 @@ async function getMarkdownInstance() {
         return markdownPromise;
     }
 
+    // 按需加载 markdown-it 与高亮库，避免首屏打包过重。
     markdownPromise = Promise.all([
         import('markdown-it'),
         import('highlight.js'),
@@ -37,7 +38,7 @@ async function getMarkdownInstance() {
                     }
                 }
 
-                return `<div class=\"code-block-wrap\"><div class=\"code-block-toolbar\"><span class=\"code-lang\">${languageLabel}</span><div class=\"code-actions\"><button type=\"button\" class=\"code-theme-btn\">主题</button><button type=\"button\" class=\"code-copy-btn\">复制</button></div></div><pre data-lang=\"${safeLang}\"><code class=\"hljs language-${safeLang}\">${highlighted}</code></pre></div>`;
+                return `<div class=\"code-block-wrap\"><div class=\"code-block-toolbar\"><span class=\"code-lang\">${languageLabel}</span><div class=\"code-actions\"><button type=\"button\" class=\"code-copy-btn\">复制</button></div></div><pre data-lang=\"${safeLang}\"><code class=\"hljs language-${safeLang}\">${highlighted}</code></pre></div>`;
             },
         });
 
@@ -52,52 +53,30 @@ export async function renderMarkdown(content) {
     return markdown.render(content || '');
 }
 
-export function bindMarkdownCodeCopy(container, message, options = {}) {
+export function bindMarkdownCodeCopy(container, message) {
     if (!container) {
         return () => { };
     }
 
-    const toggleCodeTheme = options?.toggleCodeTheme;
-    const getCodeTheme = options?.getCodeTheme;
-
-    const applyThemeButtonText = () => {
-        const currentTheme = getCodeTheme?.() || 'light';
-        const buttons = container.querySelectorAll('.code-theme-btn');
-        buttons.forEach((button) => {
-            button.textContent = currentTheme === 'dark' ? '切换浅色' : '切换深色';
-        });
-    };
-
-    function findClosest(target, selector) {
-        if (!target) {
-            return null;
+    function findFromPath(event, selector) {
+        // 优先使用 composedPath 兼容按钮内部节点点击。
+        const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+        for (const item of path) {
+            if (item instanceof Element && item.matches(selector)) {
+                return item;
+            }
         }
 
+        const target = event.target;
         if (target instanceof Element) {
             return target.closest(selector);
         }
 
-        const parent = target.parentElement;
-        return parent ? parent.closest(selector) : null;
+        return target?.parentElement ? target.parentElement.closest(selector) : null;
     }
 
     const handleClick = async (event) => {
-        const themeButton = findClosest(event.target, '.code-theme-btn');
-        if (themeButton) {
-            try {
-                await toggleCodeTheme?.();
-                const currentTheme = getCodeTheme?.();
-                if (currentTheme) {
-                    container.setAttribute('data-code-theme', currentTheme);
-                }
-                applyThemeButtonText();
-            } catch (_err) {
-                message?.error?.('切换代码主题失败');
-            }
-            return;
-        }
-
-        const button = findClosest(event.target, '.code-copy-btn');
+        const button = findFromPath(event, '.code-copy-btn');
         if (!button) {
             return;
         }
@@ -120,8 +99,6 @@ export function bindMarkdownCodeCopy(container, message, options = {}) {
             message?.error?.('复制失败，请手动复制');
         }
     };
-
-    applyThemeButtonText();
 
     container.addEventListener('click', handleClick);
     return () => {

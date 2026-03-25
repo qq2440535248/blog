@@ -13,7 +13,6 @@ import { getApiErrorMessage } from "../../utils/request";
 import { removeCacheByPrefix } from "../../utils/cache";
 import { bindMarkdownCodeCopy, renderMarkdown } from "../../utils/markdown";
 import message from "../../utils/message";
-import { useCodeTheme } from "../../composables/useCodeTheme";
 
 const route = useRoute();
 const router = useRouter();
@@ -29,7 +28,6 @@ const markdownContainerRef = ref();
 const hotPicking = ref(false);
 let autoSaveTimer = null;
 const previewHtml = ref("");
-const { codeTheme, toggleCodeTheme } = useCodeTheme();
 let unbindCodeCopy = null;
 
 const hotCategories = [
@@ -324,10 +322,7 @@ onMounted(async () => {
       }
     }, 20000);
 
-    unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message, {
-      toggleCodeTheme,
-      getCodeTheme: () => codeTheme.value,
-    });
+    unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message);
   } catch (_err) {
     message.error(getApiErrorMessage(_err, "初始化编辑器失败"));
   }
@@ -360,10 +355,7 @@ watch(
     if (unbindCodeCopy) {
       unbindCodeCopy();
     }
-    unbindCodeCopy = bindMarkdownCodeCopy(el, message, {
-      toggleCodeTheme,
-      getCodeTheme: () => codeTheme.value,
-    });
+    unbindCodeCopy = bindMarkdownCodeCopy(el, message);
   },
 );
 </script>
@@ -502,7 +494,6 @@ watch(
           <div
             ref="markdownContainerRef"
             class="preview-content markdown-body"
-            :data-code-theme="codeTheme"
             v-html="previewHtml"
           />
         </el-card>
