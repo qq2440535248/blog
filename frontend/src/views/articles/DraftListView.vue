@@ -6,83 +6,79 @@ import request from "../../utils/request";
 
 const router = useRouter();
 const loading = ref(false);
-const articles = ref([]);
+const drafts = ref([]);
 const pagination = reactive({ page: 1, pageSize: 10, total: 0 });
-const filters = reactive({ q: "" });
 
-async function fetchArticles() {
+async function fetchDrafts() {
   try {
     loading.value = true;
-    const { data } = await request.get("/articles", {
+    const { data } = await request.get("/drafts", {
       params: {
-        q: filters.q,
         page: pagination.page,
         pageSize: pagination.pageSize,
       },
     });
-    articles.value = data.data;
+    drafts.value = data.data;
     pagination.total = data.pagination.total;
   } catch (_err) {
-    ElMessage.error("加载文章失败");
+    ElMessage.error("加载草稿失败");
   } finally {
     loading.value = false;
   }
 }
 
-function goEditor(id) {
-  if (id) {
-    router.push(`/articles/${id}/edit`);
-  } else {
-    router.push("/articles/new");
-  }
+function editDraft(id) {
+  router.push(`/drafts/${id}/edit`);
 }
 
-async function removeArticle(id) {
+async function publishDraft(id) {
   try {
-    await request.delete(`/articles/${id}`);
-    ElMessage.success("删除成功");
-    fetchArticles();
-  } catch (_err) {
-    ElMessage.error("删除失败");
+    await request.post(`/drafts/${id}/publish`);
+    ElMessage.success("草稿发布成功");
+    fetchDrafts();
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || "草稿发布失败");
   }
 }
 
-onMounted(fetchArticles);
+async function removeDraft(id) {
+  try {
+    await request.delete(`/drafts/${id}`);
+    ElMessage.success("草稿删除成功");
+    fetchDrafts();
+  } catch (_err) {
+    ElMessage.error("草稿删除失败");
+  }
+}
+
+onMounted(fetchDrafts);
 </script>
 
 <template>
   <main class="page">
     <div class="toolbar">
-      <el-input
-        v-model="filters.q"
-        placeholder="搜索标题或内容"
-        style="max-width: 280px"
-        @keyup.enter="fetchArticles"
-      />
-      <el-button type="primary" @click="fetchArticles">搜索</el-button>
-      <el-button type="success" @click="goEditor()">写文章</el-button>
+      <el-button type="primary" @click="router.push('/articles/new')"
+        >新建文章</el-button
+      >
     </div>
 
     <el-table
       v-loading="loading"
-      :data="articles"
+      :data="drafts"
       style="width: 100%; margin-top: 16px"
     >
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="title" label="标题" />
-      <el-table-column prop="status" label="状态" width="120" />
-      <el-table-column label="操作" width="280">
+      <el-table-column prop="updatedAt" label="更新时间" width="220" />
+      <el-table-column label="操作" width="320">
         <template #default="scope">
-          <el-button
-            text
-            type="primary"
-            @click="router.push(`/articles/${scope.row.id}`)"
-            >详情</el-button
+          <el-button text type="primary" @click="editDraft(scope.row.id)"
+            >继续编辑</el-button
           >
-          <el-button text type="primary" @click="goEditor(scope.row.id)"
-            >编辑</el-button
+          <el-button text type="success" @click="publishDraft(scope.row.id)"
+            >发布</el-button
           >
-          <el-button text type="danger" @click="removeArticle(scope.row.id)"
+          <el-button text type="danger" @click="removeDraft(scope.row.id)"
             >删除</el-button
           >
         </template>
@@ -95,7 +91,7 @@ onMounted(fetchArticles);
         :page-size="pagination.pageSize"
         layout="prev, pager, next"
         :total="pagination.total"
-        @current-change="fetchArticles"
+        @current-change="fetchDrafts"
       />
     </div>
   </main>
@@ -110,7 +106,7 @@ onMounted(fetchArticles);
 
 .toolbar {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
 }
 
 .pager {

@@ -1,15 +1,15 @@
 <script setup>
-import { ElMessage } from 'element-plus';
-import { useAuthStore } from '../../stores/auth';
+import { ElMessage } from "element-plus";
+import { useAuthStore } from "../../stores/auth";
 
 const authStore = useAuthStore();
 
 async function logout() {
   try {
     await authStore.logout();
-    ElMessage.success('已退出登录');
+    ElMessage.success("已退出登录");
   } catch (_err) {
-    ElMessage.error('退出失败，请稍后重试');
+    ElMessage.error("退出失败，请稍后重试");
   }
 }
 </script>
@@ -20,13 +20,30 @@ async function logout() {
     <p>前后端分离博客项目初始化成功。</p>
 
     <div class="actions">
-      <router-link v-if="!authStore.isAuthenticated" to="/login">去登录</router-link>
-      <router-link v-if="!authStore.isAuthenticated" to="/register">去注册</router-link>
-      <router-link v-if="authStore.isAuthenticated" to="/profile">个人中心</router-link>
-      <router-link v-if="authStore.isAuthenticated" to="/change-password">修改密码</router-link>
-      <router-link v-if="authStore.isAuthenticated" to="/articles">文章管理</router-link>
-      <router-link v-if="authStore.isAuthenticated" to="/taxonomy">分类/标签</router-link>
-      <button v-if="authStore.isAuthenticated" type="button" @click="logout">退出登录</button>
+      <router-link v-if="!authStore.isAuthenticated" to="/login"
+        >去登录</router-link
+      >
+      <router-link v-if="!authStore.isAuthenticated" to="/register"
+        >去注册</router-link
+      >
+      <router-link v-if="authStore.isAuthenticated" to="/profile"
+        >个人中心</router-link
+      >
+      <router-link v-if="authStore.isAuthenticated" to="/change-password"
+        >修改密码</router-link
+      >
+      <router-link v-if="authStore.isAuthenticated" to="/articles"
+        >文章管理</router-link
+      >
+      <router-link v-if="authStore.isAuthenticated" to="/drafts"
+        >草稿箱</router-link
+      >
+      <router-link v-if="authStore.isAuthenticated" to="/taxonomy"
+        >分类/标签</router-link
+      >
+      <button v-if="authStore.isAuthenticated" type="button" @click="logout">
+        退出登录
+      </button>
     </div>
   </main>
 </template>

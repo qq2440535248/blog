@@ -2,160 +2,160 @@ const { Op } = require('sequelize');
 const { Article, Category, Tag } = require('../models');
 
 function parsePagination(query) {
-  const page = Math.max(Number(query.page || 1), 1);
-  const pageSize = Math.min(Math.max(Number(query.pageSize || 10), 1), 50);
-  return { page, pageSize, offset: (page - 1) * pageSize };
+    const page = Math.max(Number(query.page || 1), 1);
+    const pageSize = Math.min(Math.max(Number(query.pageSize || 10), 1), 50);
+    return { page, pageSize, offset: (page - 1) * pageSize };
 }
 
 exports.list = async (req, res, next) => {
-  try {
-    const { page, pageSize, offset } = parsePagination(req.query);
-    const { q, categoryId, tag } = req.query;
+    try {
+        const { page, pageSize, offset } = parsePagination(req.query);
+        const { q, categoryId, tag } = req.query;
 
-    const where = {
-      userId: req.auth.userId,
-    };
+        const where = {
+            userId: req.auth.userId,
+        };
 
-    if (q) {
-      where[Op.or] = [
-        { title: { [Op.like]: `%${q}%` } },
-        { content: { [Op.like]: `%${q}%` } },
-      ];
+        if (q) {
+            where[Op.or] = [
+                { title: { [Op.like]: `%${q}%` } },
+                { content: { [Op.like]: `%${q}%` } },
+            ];
+        }
+
+        if (categoryId) {
+            where.categoryId = Number(categoryId);
+        }
+
+        const include = [
+            { model: Category, as: 'category', attributes: ['id', 'name'] },
+            { model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] },
+        ];
+
+        if (tag) {
+            include[1].where = { name: { [Op.like]: `%${tag}%` } };
+        }
+
+        const { rows, count } = await Article.findAndCountAll({
+            where,
+            include,
+            distinct: true,
+            order: [['id', 'DESC']],
+            offset,
+            limit: pageSize,
+        });
+
+        return res.json({
+            data: rows,
+            pagination: {
+                page,
+                pageSize,
+                total: count,
+            },
+        });
+    } catch (err) {
+        return next(err);
     }
-
-    if (categoryId) {
-      where.categoryId = Number(categoryId);
-    }
-
-    const include = [
-      { model: Category, as: 'category', attributes: ['id', 'name'] },
-      { model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] },
-    ];
-
-    if (tag) {
-      include[1].where = { name: { [Op.like]: `%${tag}%` } };
-    }
-
-    const { rows, count } = await Article.findAndCountAll({
-      where,
-      include,
-      distinct: true,
-      order: [['id', 'DESC']],
-      offset,
-      limit: pageSize,
-    });
-
-    return res.json({
-      data: rows,
-      pagination: {
-        page,
-        pageSize,
-        total: count,
-      },
-    });
-  } catch (err) {
-    return next(err);
-  }
 };
 
 exports.detail = async (req, res, next) => {
-  try {
-    const article = await Article.findOne({
-      where: { id: req.params.id, userId: req.auth.userId },
-      include: [
-        { model: Category, as: 'category', attributes: ['id', 'name'] },
-        { model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] },
-      ],
-    });
+    try {
+        const article = await Article.findOne({
+            where: { id: req.params.id, userId: req.auth.userId },
+            include: [
+                { model: Category, as: 'category', attributes: ['id', 'name'] },
+                { model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] },
+            ],
+        });
 
-    if (!article) {
-      return res.status(404).json({ message: 'Article not found' });
+        if (!article) {
+            return res.status(404).json({ message: 'Article not found' });
+        }
+
+        return res.json({ data: article });
+    } catch (err) {
+        return next(err);
     }
-
-    return res.json({ data: article });
-  } catch (err) {
-    return next(err);
-  }
 };
 
 exports.create = async (req, res, next) => {
-  try {
-    const { title, content, excerpt, categoryId, tagIds = [], status = 'published' } = req.body;
+    try {
+        const { title, content, excerpt, categoryId, tagIds = [], status = 'published' } = req.body;
 
-    if (!title || !content) {
-      return res.status(400).json({ message: 'title and content are required' });
+        if (!title || !content) {
+            return res.status(400).json({ message: 'title and content are required' });
+        }
+
+        const article = await Article.create({
+            userId: req.auth.userId,
+            title,
+            content,
+            excerpt: excerpt || '',
+            categoryId: categoryId || null,
+            status,
+        });
+
+        if (Array.isArray(tagIds) && tagIds.length > 0) {
+            const tags = await Tag.findAll({ where: { id: tagIds, userId: req.auth.userId } });
+            await article.setTags(tags);
+        }
+
+        const created = await Article.findByPk(article.id, {
+            include: [{ model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] }],
+        });
+
+        return res.status(201).json({ data: created });
+    } catch (err) {
+        return next(err);
     }
-
-    const article = await Article.create({
-      userId: req.auth.userId,
-      title,
-      content,
-      excerpt: excerpt || '',
-      categoryId: categoryId || null,
-      status,
-    });
-
-    if (Array.isArray(tagIds) && tagIds.length > 0) {
-      const tags = await Tag.findAll({ where: { id: tagIds, userId: req.auth.userId } });
-      await article.setTags(tags);
-    }
-
-    const created = await Article.findByPk(article.id, {
-      include: [{ model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] }],
-    });
-
-    return res.status(201).json({ data: created });
-  } catch (err) {
-    return next(err);
-  }
 };
 
 exports.update = async (req, res, next) => {
-  try {
-    const article = await Article.findOne({
-      where: { id: req.params.id, userId: req.auth.userId },
-    });
+    try {
+        const article = await Article.findOne({
+            where: { id: req.params.id, userId: req.auth.userId },
+        });
 
-    if (!article) {
-      return res.status(404).json({ message: 'Article not found' });
+        if (!article) {
+            return res.status(404).json({ message: 'Article not found' });
+        }
+
+        const { title, content, excerpt, categoryId, tagIds, status } = req.body;
+
+        article.title = title ?? article.title;
+        article.content = content ?? article.content;
+        article.excerpt = excerpt ?? article.excerpt;
+        article.categoryId = categoryId ?? article.categoryId;
+        article.status = status ?? article.status;
+        await article.save();
+
+        if (Array.isArray(tagIds)) {
+            const tags = await Tag.findAll({ where: { id: tagIds, userId: req.auth.userId } });
+            await article.setTags(tags);
+        }
+
+        const updated = await Article.findByPk(article.id, {
+            include: [{ model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] }],
+        });
+
+        return res.json({ data: updated });
+    } catch (err) {
+        return next(err);
     }
-
-    const { title, content, excerpt, categoryId, tagIds, status } = req.body;
-
-    article.title = title ?? article.title;
-    article.content = content ?? article.content;
-    article.excerpt = excerpt ?? article.excerpt;
-    article.categoryId = categoryId ?? article.categoryId;
-    article.status = status ?? article.status;
-    await article.save();
-
-    if (Array.isArray(tagIds)) {
-      const tags = await Tag.findAll({ where: { id: tagIds, userId: req.auth.userId } });
-      await article.setTags(tags);
-    }
-
-    const updated = await Article.findByPk(article.id, {
-      include: [{ model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] }],
-    });
-
-    return res.json({ data: updated });
-  } catch (err) {
-    return next(err);
-  }
 };
 
 exports.remove = async (req, res, next) => {
-  try {
-    const count = await Article.destroy({
-      where: { id: req.params.id, userId: req.auth.userId },
-    });
+    try {
+        const count = await Article.destroy({
+            where: { id: req.params.id, userId: req.auth.userId },
+        });
 
-    if (!count) {
-      return res.status(404).json({ message: 'Article not found' });
+        if (!count) {
+            return res.status(404).json({ message: 'Article not found' });
+        }
+
+        return res.json({ message: 'Article deleted' });
+    } catch (err) {
+        return next(err);
     }
-
-    return res.json({ message: 'Article deleted' });
-  } catch (err) {
-    return next(err);
-  }
 };

@@ -1,8 +1,8 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Category = sequelize.define(
-    'Category',
+const Like = sequelize.define(
+    'Like',
     {
         id: {
             type: DataTypes.INTEGER.UNSIGNED,
@@ -14,15 +14,22 @@ const Category = sequelize.define(
             allowNull: false,
             field: 'user_id',
         },
-        name: {
-            type: DataTypes.STRING(60),
+        articleId: {
+            type: DataTypes.INTEGER.UNSIGNED,
             allowNull: false,
+            field: 'article_id',
         },
     },
     {
-        tableName: 'categories',
+        tableName: 'likes',
         underscored: true,
+        indexes: [
+            {
+                unique: true,
+                fields: ['user_id', 'article_id'],
+            },
+        ],
     }
 );
 
-module.exports = Category;
+module.exports = Like;

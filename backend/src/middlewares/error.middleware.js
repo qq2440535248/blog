@@ -1,10 +1,10 @@
 function errorMiddleware(err, _req, res, _next) {
-  // eslint-disable-next-line no-console
-  console.error(err);
+    // eslint-disable-next-line no-console
+    console.error(err);
 
-  return res.status(err.status || 500).json({
-    message: err.message || 'Internal Server Error',
-  });
+    return res.status(err.status || 500).json({
+        message: err.message || 'Internal Server Error',
+    });
 }
 
 module.exports = errorMiddleware;

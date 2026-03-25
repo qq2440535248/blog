@@ -1,8 +1,8 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Article = sequelize.define(
-    'Article',
+const Draft = sequelize.define(
+    'Draft',
     {
         id: {
             type: DataTypes.INTEGER.UNSIGNED,
@@ -14,14 +14,10 @@ const Article = sequelize.define(
             allowNull: false,
             field: 'user_id',
         },
-        categoryId: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            allowNull: true,
-            field: 'category_id',
-        },
         title: {
             type: DataTypes.STRING(200),
             allowNull: false,
+            defaultValue: '',
         },
         excerpt: {
             type: DataTypes.STRING(280),
@@ -30,23 +26,24 @@ const Article = sequelize.define(
         content: {
             type: DataTypes.TEXT('long'),
             allowNull: false,
+            defaultValue: '',
         },
-        status: {
-            type: DataTypes.ENUM('draft', 'published'),
-            allowNull: false,
-            defaultValue: 'published',
-        },
-        likesCount: {
+        categoryId: {
             type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: true,
+            field: 'category_id',
+        },
+        tagIds: {
+            type: DataTypes.JSON,
             allowNull: false,
-            defaultValue: 0,
-            field: 'likes_count',
+            defaultValue: [],
+            field: 'tag_ids',
         },
     },
     {
-        tableName: 'articles',
+        tableName: 'drafts',
         underscored: true,
     }
 );
 
-module.exports = Article;
+module.exports = Draft;

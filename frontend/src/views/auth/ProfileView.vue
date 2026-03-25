@@ -1,42 +1,42 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
-import request from '../../utils/request';
+import { onMounted, reactive, ref } from "vue";
+import { ElMessage } from "element-plus";
+import request from "../../utils/request";
 
 const loading = ref(false);
 const form = reactive({
-  username: '',
-  email: '',
-  nickname: '',
-  avatarUrl: '',
-  bio: '',
+  username: "",
+  email: "",
+  nickname: "",
+  avatarUrl: "",
+  bio: "",
 });
 
 async function fetchProfile() {
   try {
-    const { data } = await request.get('/users/me');
+    const { data } = await request.get("/users/me");
     const profile = data.data;
-    form.username = profile.username || '';
-    form.email = profile.email || '';
-    form.nickname = profile.nickname || '';
-    form.avatarUrl = profile.avatarUrl || '';
-    form.bio = profile.bio || '';
+    form.username = profile.username || "";
+    form.email = profile.email || "";
+    form.nickname = profile.nickname || "";
+    form.avatarUrl = profile.avatarUrl || "";
+    form.bio = profile.bio || "";
   } catch (_err) {
-    ElMessage.error('加载个人信息失败');
+    ElMessage.error("加载个人信息失败");
   }
 }
 
 async function saveProfile() {
   try {
     loading.value = true;
-    await request.put('/users/me', {
+    await request.put("/users/me", {
       nickname: form.nickname,
       avatarUrl: form.avatarUrl,
       bio: form.bio,
     });
-    ElMessage.success('保存成功');
+    ElMessage.success("保存成功");
   } catch (_err) {
-    ElMessage.error('保存失败');
+    ElMessage.error("保存失败");
   } finally {
     loading.value = false;
   }
@@ -64,7 +64,9 @@ onMounted(fetchProfile);
       <el-form-item label="简介">
         <el-input v-model="form.bio" type="textarea" :rows="3" />
       </el-form-item>
-      <el-button type="primary" :loading="loading" @click="saveProfile">保存</el-button>
+      <el-button type="primary" :loading="loading" @click="saveProfile"
+        >保存</el-button
+      >
     </el-form>
   </main>
 </template>
