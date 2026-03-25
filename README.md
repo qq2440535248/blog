@@ -34,4 +34,5 @@ pnpm test:backend
 pnpm test:api
 pnpm test:validators
 pnpm test:authz
+pnpm test:route-validate
 ```

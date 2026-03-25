@@ -33,8 +33,13 @@ async function submitLogin() {
       return;
     }
 
+    const payload = {
+      email: form.email.trim(),
+      password: form.password,
+    };
+
     loading.value = true;
-    await authStore.login(form);
+    await authStore.login(payload);
     ElMessage.success("登录成功");
     router.push("/");
   } catch (error) {
