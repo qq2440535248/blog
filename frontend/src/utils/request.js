@@ -60,8 +60,10 @@ request.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
         const status = error?.response?.status;
+        const url = String(originalRequest?.url || '');
+        const isAuthEndpoint = /\/auth\/(login|register|refresh)/.test(url);
 
-        if (status !== 401 || originalRequest._retry) {
+        if (status !== 401 || originalRequest._retry || isAuthEndpoint) {
             error.userMessage = getApiErrorMessage(error);
             return Promise.reject(error);
         }
