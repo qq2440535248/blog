@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../../utils/request";
@@ -8,6 +8,7 @@ const router = useRouter();
 const loading = ref(false);
 const drafts = ref([]);
 const pagination = reactive({ page: 1, pageSize: 10, total: 0 });
+const hasDrafts = computed(() => drafts.value.length > 0);
 
 function formatDate(value) {
   if (!value) {
@@ -86,7 +87,8 @@ onMounted(fetchDrafts);
       </header>
 
       <el-card class="draft-card" shadow="never">
-        <el-table v-loading="loading" :data="drafts" style="width: 100%">
+        <div class="table-wrap">
+          <el-table v-loading="loading" :data="drafts" style="width: 100%">
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column label="标题" min-width="280">
             <template #default="scope">
@@ -97,14 +99,20 @@ onMounted(fetchDrafts);
             </template>
           </el-table-column>
           <el-table-column label="更新时间" width="180">
-            <template #default="scope">{{ formatDate(scope.row.updatedAt) }}</template>
+            <template #default="scope">{{
+              formatDate(scope.row.updatedAt)
+            }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="280" fixed="right">
+            <el-table-column label="操作" width="280" fixed="right">
             <template #default="scope">
               <el-button text type="primary" @click="editDraft(scope.row.id)">
                 继续编辑
               </el-button>
-              <el-button text type="success" @click="publishDraft(scope.row.id)">
+              <el-button
+                text
+                type="success"
+                @click="publishDraft(scope.row.id)"
+              >
                 发布
               </el-button>
               <el-button text type="danger" @click="removeDraft(scope.row.id)">
@@ -112,7 +120,12 @@ onMounted(fetchDrafts);
               </el-button>
             </template>
           </el-table-column>
-        </el-table>
+          </el-table>
+        </div>
+
+        <el-empty v-if="!loading && !hasDrafts" description="还没有草稿，开始写第一篇内容吧">
+          <el-button type="primary" @click="router.push('/articles/new')">立即创作</el-button>
+        </el-empty>
       </el-card>
 
       <div class="pager">
@@ -158,6 +171,10 @@ h1 {
   margin-top: 16px;
 }
 
+.table-wrap {
+  overflow-x: auto;
+}
+
 .title-cell {
   display: grid;
   gap: 4px;
@@ -177,6 +194,10 @@ h1 {
 @media (max-width: 820px) {
   .draft-header {
     flex-direction: column;
+  }
+
+  .draft-card {
+    padding: 4px;
   }
 }
 </style>

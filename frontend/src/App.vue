@@ -43,12 +43,18 @@ watch(
       <div class="container topbar-inner">
         <router-link class="brand" to="/">Person Blog</router-link>
 
-        <button class="menu-toggle" type="button" @click="mobileMenuOpen = !mobileMenuOpen">
+        <button
+          class="menu-toggle"
+          type="button"
+          @click="mobileMenuOpen = !mobileMenuOpen"
+        >
           {{ mobileMenuOpen ? "关闭" : "菜单" }}
         </button>
 
         <nav class="nav" :class="{ open: mobileMenuOpen }">
-          <router-link :class="{ active: isActive('/') }" to="/">首页</router-link>
+          <router-link :class="{ active: isActive('/') }" to="/"
+            >首页</router-link
+          >
           <router-link
             v-if="authStore.isAuthenticated"
             :class="{ active: isActive('/articles') }"
@@ -77,9 +83,25 @@ watch(
           >
             个人中心
           </router-link>
-          <router-link v-if="!authStore.isAuthenticated" to="/login">登录</router-link>
-          <router-link v-if="!authStore.isAuthenticated" to="/register">注册</router-link>
-          <button v-if="authStore.isAuthenticated" class="logout" type="button" @click="logout">
+          <router-link
+            v-if="authStore.isAuthenticated"
+            :class="{ active: isActive('/change-password') }"
+            to="/change-password"
+          >
+            安全设置
+          </router-link>
+          <router-link v-if="!authStore.isAuthenticated" to="/login"
+            >登录</router-link
+          >
+          <router-link v-if="!authStore.isAuthenticated" to="/register"
+            >注册</router-link
+          >
+          <button
+            v-if="authStore.isAuthenticated"
+            class="logout"
+            type="button"
+            @click="logout"
+          >
             退出
           </button>
         </nav>

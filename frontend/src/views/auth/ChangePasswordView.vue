@@ -8,13 +8,32 @@ const formRef = ref();
 const form = reactive({
   oldPassword: "",
   newPassword: "",
+  confirmPassword: "",
 });
+
+const validateConfirmPassword = (_rule, value, callback) => {
+  if (!value) {
+    callback(new Error("请再次输入新密码"));
+    return;
+  }
+
+  if (value !== form.newPassword) {
+    callback(new Error("两次输入的新密码不一致"));
+    return;
+  }
+
+  callback();
+};
 
 const rules = {
   oldPassword: [{ required: true, message: "请输入旧密码", trigger: "blur" }],
   newPassword: [
     { required: true, message: "请输入新密码", trigger: "blur" },
     { min: 6, message: "新密码至少 6 位", trigger: "blur" },
+  ],
+  confirmPassword: [
+    { required: true, message: "请再次输入新密码", trigger: "blur" },
+    { validator: validateConfirmPassword, trigger: "blur" },
   ],
 };
 
@@ -33,6 +52,7 @@ async function submitChangePassword() {
     ElMessage.success("密码修改成功");
     form.oldPassword = "";
     form.newPassword = "";
+    form.confirmPassword = "";
   } catch (error) {
     ElMessage.error(error?.response?.data?.message || "密码修改失败");
   } finally {
@@ -72,7 +92,19 @@ async function submitChangePassword() {
               placeholder="请输入新密码"
             />
           </el-form-item>
-          <el-button type="primary" :loading="loading" @click="submitChangePassword">
+          <el-form-item label="确认新密码" prop="confirmPassword">
+            <el-input
+              v-model="form.confirmPassword"
+              type="password"
+              show-password
+              placeholder="请再次输入新密码"
+            />
+          </el-form-item>
+          <el-button
+            type="primary"
+            :loading="loading"
+            @click="submitChangePassword"
+          >
             提交修改
           </el-button>
         </el-form>

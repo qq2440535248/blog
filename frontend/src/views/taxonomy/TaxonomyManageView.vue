@@ -73,6 +73,10 @@ onMounted(fetchAll);
         <p class="kicker">CONTENT TAXONOMY</p>
         <h1>分类与标签管理</h1>
         <p>用清晰的分类体系提升文章组织效率与检索体验。</p>
+        <div class="summary">
+          <span>分类 {{ categories.length }}</span>
+          <span>标签 {{ tags.length }}</span>
+        </div>
       </header>
 
       <section class="taxonomy-grid">
@@ -80,7 +84,9 @@ onMounted(fetchAll);
           <h3>分类</h3>
           <div class="inline-form">
             <el-input v-model="form.category" placeholder="输入新分类名称" />
-            <el-button type="primary" @click="createCategory">新增分类</el-button>
+            <el-button type="primary" @click="createCategory"
+              >新增分类</el-button
+            >
           </div>
           <div class="tags-wrap">
             <el-tag
@@ -92,6 +98,11 @@ onMounted(fetchAll);
             >
               {{ item.name }}
             </el-tag>
+            <el-empty
+              v-if="!loading && categories.length === 0"
+              class="inline-empty"
+              description="暂无分类"
+            />
           </div>
         </el-card>
 
@@ -102,9 +113,19 @@ onMounted(fetchAll);
             <el-button type="primary" @click="createTag">新增标签</el-button>
           </div>
           <div class="tags-wrap">
-            <el-tag v-for="item in tags" :key="item.id" class="item" effect="plain">
+            <el-tag
+              v-for="item in tags"
+              :key="item.id"
+              class="item"
+              effect="plain"
+            >
               {{ item.name }}
             </el-tag>
+            <el-empty
+              v-if="!loading && tags.length === 0"
+              class="inline-empty"
+              description="暂无标签"
+            />
           </div>
         </el-card>
       </section>
@@ -131,6 +152,22 @@ h1 {
   color: var(--color-text-secondary);
 }
 
+.summary {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.summary span {
+  border: 1px solid var(--color-border);
+  background: #f4f8ff;
+  color: var(--color-text-secondary);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .taxonomy-grid {
   margin-top: 16px;
   display: grid;
@@ -155,6 +192,11 @@ h1 {
 .tags-wrap {
   display: flex;
   flex-wrap: wrap;
+}
+
+.inline-empty {
+  width: 100%;
+  padding-top: 8px;
 }
 
 .item {

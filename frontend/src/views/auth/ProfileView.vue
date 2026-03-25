@@ -4,6 +4,7 @@ import { ElMessage } from "element-plus";
 import request from "../../utils/request";
 
 const loading = ref(false);
+const formRef = ref();
 const form = reactive({
   username: "",
   email: "",
@@ -11,6 +12,24 @@ const form = reactive({
   avatarUrl: "",
   bio: "",
 });
+
+const rules = {
+  nickname: [{ max: 30, message: "昵称最多 30 个字符", trigger: "blur" }],
+  avatarUrl: [
+    {
+      validator: (_rule, value, callback) => {
+        if (!value) {
+          callback();
+          return;
+        }
+
+        const ok = /^https?:\/\/.+/i.test(value.trim());
+        callback(ok ? undefined : new Error("头像地址需以 http:// 或 https:// 开头"));
+      },
+      trigger: "blur",
+    },
+  ],
+};
 
 async function fetchProfile() {
   try {
@@ -28,15 +47,20 @@ async function fetchProfile() {
 
 async function saveProfile() {
   try {
+    const valid = await formRef.value?.validate();
+    if (!valid) {
+      return;
+    }
+
     loading.value = true;
     await request.put("/users/me", {
-      nickname: form.nickname,
-      avatarUrl: form.avatarUrl,
-      bio: form.bio,
+      nickname: form.nickname.trim(),
+      avatarUrl: form.avatarUrl.trim(),
+      bio: form.bio.trim(),
     });
     ElMessage.success("保存成功");
-  } catch (_err) {
-    ElMessage.error("保存失败");
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || "保存失败");
   } finally {
     loading.value = false;
   }
@@ -59,7 +83,7 @@ onMounted(fetchProfile);
       <el-card class="profile-main" shadow="never">
         <p class="kicker">PROFILE SETTINGS</p>
         <h2>个人信息</h2>
-        <el-form :model="form" label-position="top">
+        <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
           <div class="grid-2">
             <el-form-item label="用户名">
               <el-input v-model="form.username" disabled />
@@ -68,11 +92,14 @@ onMounted(fetchProfile);
               <el-input v-model="form.email" disabled />
             </el-form-item>
           </div>
-          <el-form-item label="昵称">
+          <el-form-item label="昵称" prop="nickname">
             <el-input v-model="form.nickname" placeholder="展示给他人的名称" />
           </el-form-item>
-          <el-form-item label="头像 URL">
-            <el-input v-model="form.avatarUrl" placeholder="https://example.com/avatar.png" />
+          <el-form-item label="头像 URL" prop="avatarUrl">
+            <el-input
+              v-model="form.avatarUrl"
+              placeholder="https://example.com/avatar.png"
+            />
           </el-form-item>
           <el-form-item label="简介">
             <el-input
