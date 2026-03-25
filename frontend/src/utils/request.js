@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
 export function getApiErrorMessage(error, fallback = '请求失败，请稍后重试') {
     return (
         error?.response?.data?.message ||
@@ -9,9 +11,28 @@ export function getApiErrorMessage(error, fallback = '请求失败，请稍后�
 }
 
 const request = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+    baseURL: apiBaseUrl,
     timeout: 10000,
 });
+
+let refreshPromise = null;
+
+async function refreshAuthTokens(refreshToken) {
+    const { data } = await axios.post(`${apiBaseUrl}/auth/refresh`, { refreshToken });
+    const newAccessToken = data?.data?.accessToken;
+    const newRefreshToken = data?.data?.refreshToken;
+
+    if (!newAccessToken) {
+        throw new Error('Refresh failed');
+    }
+
+    localStorage.setItem('access_token', newAccessToken);
+    if (newRefreshToken) {
+        localStorage.setItem('refresh_token', newRefreshToken);
+    }
+
+    return newAccessToken;
+}
 
 function redirectToLogin() {
     if (typeof window === 'undefined') {
@@ -57,21 +78,13 @@ request.interceptors.response.use(
         originalRequest._retry = true;
 
         try {
-            const { data } = await axios.post(
-                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/auth/refresh`,
-                { refreshToken }
-            );
-
-            const newAccessToken = data?.data?.accessToken;
-            const newRefreshToken = data?.data?.refreshToken;
-            if (!newAccessToken) {
-                throw new Error('Refresh failed');
+            if (!refreshPromise) {
+                refreshPromise = refreshAuthTokens(refreshToken).finally(() => {
+                    refreshPromise = null;
+                });
             }
 
-            localStorage.setItem('access_token', newAccessToken);
-            if (newRefreshToken) {
-                localStorage.setItem('refresh_token', newRefreshToken);
-            }
+            const newAccessToken = await refreshPromise;
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return request(originalRequest);
         } catch (refreshError) {
