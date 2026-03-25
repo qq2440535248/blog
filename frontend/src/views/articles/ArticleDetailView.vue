@@ -13,6 +13,7 @@ const authStore = useAuthStore();
 const loading = ref(false);
 const article = ref(null);
 const liked = ref(false);
+const collected = ref(false);
 const renderedContent = ref("");
 const markdownContainerRef = ref();
 const commentsLoading = ref(false);
@@ -92,6 +93,17 @@ async function fetchLikeState() {
     liked.value = Boolean(data.data.liked);
   } catch (_err) {
     liked.value = false;
+  }
+}
+
+async function fetchCollectionState() {
+  try {
+    const { data } = await request.get(
+      `/articles/${route.params.id}/is-collected`,
+    );
+    collected.value = Boolean(data.data.collected);
+  } catch (_err) {
+    collected.value = false;
   }
 }
 
@@ -253,8 +265,34 @@ async function toggleLike() {
   }
 }
 
+async function toggleCollection() {
+  if (!ensureLogin("文章收藏")) {
+    return;
+  }
+
+  try {
+    if (collected.value) {
+      await request.delete(`/articles/${route.params.id}/collect`);
+      collected.value = false;
+      message.success("已取消收藏");
+      return;
+    }
+
+    await request.post(`/articles/${route.params.id}/collect`);
+    collected.value = true;
+    message.success("收藏成功");
+  } catch (_err) {
+    message.error("操作失败");
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([fetchDetail(), fetchLikeState(), fetchComments()]);
+  await Promise.all([
+    fetchDetail(),
+    fetchLikeState(),
+    fetchCollectionState(),
+    fetchComments(),
+  ]);
   await refreshRenderedContent();
   unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message, {
     toggleCodeTheme,
@@ -471,6 +509,14 @@ watch(
           <span class="thumb-icon">👍</span>
           <span>{{ liked ? "已点赞" : "点赞文章" }}</span>
         </el-button>
+        <el-button
+          class="collect-btn"
+          :class="{ active: collected }"
+          plain
+          @click="toggleCollection"
+        >
+          <span>{{ collected ? "★ 已收藏" : "☆ 收藏文章" }}</span>
+        </el-button>
         <p class="like-count">当前点赞：{{ article?.likesCount || 0 }}</p>
       </aside>
     </section>
@@ -678,6 +724,20 @@ h1 {
   border-color: #85aaf2;
   background: #dfeafe;
   color: #1b4fbe;
+}
+
+.collect-btn {
+  width: 100%;
+  margin-top: 8px;
+  border-color: #ffd89c;
+  color: #b87911;
+  background: #fff8e8;
+}
+
+.collect-btn.active {
+  border-color: #f3bb58;
+  color: #9e6308;
+  background: #ffefcc;
 }
 
 .thumb-icon {

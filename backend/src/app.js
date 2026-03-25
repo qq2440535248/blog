@@ -11,6 +11,7 @@ const articleRoutes = require('./routes/article.routes');
 const likeRoutes = require('./routes/like.routes');
 const draftRoutes = require('./routes/draft.routes');
 const commentRoutes = require('./routes/comment.routes');
+const collectionRoutes = require('./routes/collection.routes');
 const errorMiddleware = require('./middlewares/error.middleware');
 const { fail, ERROR_CODES } = require('./utils/http');
 
@@ -47,6 +48,7 @@ app.use('/api/tags', tagRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api', likeRoutes);
 app.use('/api', commentRoutes);
+app.use('/api', collectionRoutes);
 app.use('/api/drafts', draftRoutes);
 
 app.use((_req, res) => {

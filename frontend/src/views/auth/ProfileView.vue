@@ -7,6 +7,10 @@ const loading = ref(false);
 const formRef = ref();
 const avatarUploading = ref(false);
 const lastAvatarName = ref("");
+const likesLoading = ref(false);
+const collectionsLoading = ref(false);
+const likedArticles = ref([]);
+const collectedArticles = ref([]);
 const form = reactive({
   username: "",
   email: "",
@@ -79,14 +83,47 @@ async function fetchProfile() {
   }
 }
 
-async function saveProfile() {
+async function fetchMyLikes() {
   try {
-    const valid = await formRef.value?.validate();
+    likesLoading.value = true;
+    const { data } = await request.get("/users/me/likes", {
+      params: { page: 1, pageSize: 6 },
+    });
+    likedArticles.value = data.data.list || [];
+  } catch (_err) {
+    likedArticles.value = [];
+  } finally {
+    likesLoading.value = false;
+  }
+}
+
+async function fetchMyCollections() {
+  try {
+    collectionsLoading.value = true;
+    const { data } = await request.get("/users/me/collections", {
+      params: { page: 1, pageSize: 6 },
+    });
+    collectedArticles.value = data.data.list || [];
+  } catch (_err) {
+    collectedArticles.value = [];
+  } finally {
+    collectionsLoading.value = false;
+  }
+}
+
+async function saveProfile() {
+  if (loading.value) {
+    return;
+  }
+
+  try {
+    loading.value = true;
+    const valid = await formRef.value?.validate().catch(() => false);
     if (!valid) {
+      loading.value = false;
       return;
     }
 
-    loading.value = true;
     await request.put("/users/me", {
       username: form.username.trim(),
       email: form.email.trim(),
@@ -101,7 +138,9 @@ async function saveProfile() {
   }
 }
 
-onMounted(fetchProfile);
+onMounted(async () => {
+  await Promise.all([fetchProfile(), fetchMyLikes(), fetchMyCollections()]);
+});
 </script>
 
 <template>
@@ -143,9 +182,14 @@ onMounted(fetchProfile);
               :before-upload="beforeAvatarUpload"
               :http-request="uploadAvatarRequest"
             >
-              <div class="upload-dragger" :class="{ uploading: avatarUploading }">
+              <div
+                class="upload-dragger"
+                :class="{ uploading: avatarUploading }"
+              >
                 <div class="upload-main">拖拽图片到这里，或点击上传</div>
-                <div class="upload-sub">支持 JPG/PNG/GIF/WebP，大小不超过 2MB</div>
+                <div class="upload-sub">
+                  支持 JPG/PNG/GIF/WebP，大小不超过 2MB
+                </div>
               </div>
             </el-upload>
             <div class="avatar-preview" v-if="form.avatarUrl">
@@ -167,6 +211,40 @@ onMounted(fetchProfile);
             保存资料
           </el-button>
         </el-form>
+
+        <div class="interest-grid">
+          <section class="interest-block" v-loading="likesLoading">
+            <h3>我的点赞</h3>
+            <el-empty
+              v-if="!likesLoading && !likedArticles.length"
+              description="暂无点赞文章"
+            />
+            <div
+              v-for="item in likedArticles"
+              :key="`like-${item.id}`"
+              class="interest-item"
+            >
+              <strong>{{ item.title || "未命名文章" }}</strong>
+              <p>{{ item.excerpt || "暂无摘要" }}</p>
+            </div>
+          </section>
+
+          <section class="interest-block" v-loading="collectionsLoading">
+            <h3>我的收藏</h3>
+            <el-empty
+              v-if="!collectionsLoading && !collectedArticles.length"
+              description="暂无收藏文章"
+            />
+            <div
+              v-for="item in collectedArticles"
+              :key="`collect-${item.id}`"
+              class="interest-item"
+            >
+              <strong>{{ item.title || "未命名文章" }}</strong>
+              <p>{{ item.excerpt || "暂无摘要" }}</p>
+            </div>
+          </section>
+        </div>
       </el-card>
     </section>
   </main>
@@ -275,12 +353,50 @@ h2 {
   font-size: 13px;
 }
 
+.interest-grid {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.interest-block {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #f9fbff;
+  padding: 12px;
+}
+
+.interest-block h3 {
+  margin: 0 0 10px;
+}
+
+.interest-item {
+  border-top: 1px dashed #dbe5f4;
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.interest-item strong {
+  display: block;
+}
+
+.interest-item p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
 @media (max-width: 900px) {
   .profile-shell {
     grid-template-columns: 1fr;
   }
 
   .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .interest-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -9,6 +9,7 @@ const Like = require('./like.model');
 const Draft = require('./draft.model');
 const Comment = require('./comment.model');
 const CommentLike = require('./comment-like.model');
+const Collection = require('./collection.model');
 
 User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens' });
 RefreshToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -65,6 +66,12 @@ CommentLike.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Comment.hasMany(CommentLike, { foreignKey: 'commentId', as: 'likes' });
 CommentLike.belongsTo(Comment, { foreignKey: 'commentId', as: 'comment' });
 
+User.hasMany(Collection, { foreignKey: 'userId', as: 'collections' });
+Collection.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+Article.hasMany(Collection, { foreignKey: 'articleId', as: 'collections' });
+Collection.belongsTo(Article, { foreignKey: 'articleId', as: 'article' });
+
 async function initDatabase() {
     await sequelize.authenticate();
     await sequelize.sync();
@@ -82,5 +89,6 @@ module.exports = {
     Draft,
     Comment,
     CommentLike,
+    Collection,
     initDatabase,
 };

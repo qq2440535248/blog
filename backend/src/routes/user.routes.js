@@ -11,5 +11,7 @@ router.get('/me', authMiddleware, userController.getMe);
 router.put('/me', authMiddleware, validate(validateUpdateProfile), userController.updateMe);
 router.put('/me/password', authMiddleware, validate(validateChangePassword), userController.changePassword);
 router.post('/me/avatar', authMiddleware, imageUpload.single('avatar'), userController.uploadAvatar);
+router.get('/me/likes', authMiddleware, userController.listMyLikes);
+router.get('/me/collections', authMiddleware, userController.listMyCollections);
 
 module.exports = router;
