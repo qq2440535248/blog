@@ -6,6 +6,7 @@ import message from "../../utils/message";
 const loading = ref(false);
 const formRef = ref();
 const avatarUploading = ref(false);
+const lastAvatarName = ref("");
 const form = reactive({
   username: "",
   email: "",
@@ -15,6 +16,14 @@ const form = reactive({
 });
 
 const rules = {
+  username: [
+    { required: true, message: "请输入用户名", trigger: "blur" },
+    { min: 3, message: "用户名至少 3 位", trigger: "blur" },
+  ],
+  email: [
+    { required: true, message: "请输入邮箱", trigger: "blur" },
+    { type: "email", message: "邮箱格式不正确", trigger: "blur" },
+  ],
   nickname: [{ max: 30, message: "昵称最多 30 个字符", trigger: "blur" }],
 };
 
@@ -45,6 +54,7 @@ async function uploadAvatarRequest(option) {
     });
 
     form.avatarUrl = data.data.avatarUrl || "";
+    lastAvatarName.value = option.file?.name || "";
     message.success("头像上传成功");
     option.onSuccess?.(data.data);
   } catch (error) {
@@ -78,6 +88,8 @@ async function saveProfile() {
 
     loading.value = true;
     await request.put("/users/me", {
+      username: form.username.trim(),
+      email: form.email.trim(),
       nickname: form.nickname.trim(),
       bio: form.bio.trim(),
     });
@@ -113,11 +125,11 @@ onMounted(fetchProfile);
           label-position="top"
         >
           <div class="grid-2">
-            <el-form-item label="用户名">
-              <el-input v-model="form.username" disabled />
+            <el-form-item label="用户名" prop="username">
+              <el-input v-model="form.username" />
             </el-form-item>
-            <el-form-item label="邮箱">
-              <el-input v-model="form.email" disabled />
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="form.email" />
             </el-form-item>
           </div>
           <el-form-item label="昵称" prop="nickname">
@@ -127,12 +139,19 @@ onMounted(fetchProfile);
             <el-upload
               class="avatar-uploader"
               :show-file-list="false"
+              drag
               :before-upload="beforeAvatarUpload"
               :http-request="uploadAvatarRequest"
             >
-              <el-button :loading="avatarUploading" plain>上传头像</el-button>
+              <div class="upload-dragger" :class="{ uploading: avatarUploading }">
+                <div class="upload-main">拖拽图片到这里，或点击上传</div>
+                <div class="upload-sub">支持 JPG/PNG/GIF/WebP，大小不超过 2MB</div>
+              </div>
             </el-upload>
-            <p class="upload-tip">支持 JPG/PNG/GIF/WebP，大小不超过 2MB</p>
+            <div class="avatar-preview" v-if="form.avatarUrl">
+              <el-image :src="form.avatarUrl" fit="cover" />
+              <p>已上传：{{ lastAvatarName || "头像图片" }}</p>
+            </div>
           </el-form-item>
           <el-form-item label="简介">
             <el-input
@@ -206,6 +225,54 @@ h2 {
   margin: 8px 0 0;
   color: var(--color-text-secondary);
   font-size: 12px;
+}
+
+.avatar-uploader {
+  width: 100%;
+}
+
+.upload-dragger {
+  width: 100%;
+  border: 1px dashed var(--color-border);
+  background: #f7faff;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+}
+
+.upload-dragger.uploading {
+  opacity: 0.7;
+}
+
+.upload-main {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.upload-sub {
+  margin-top: 6px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.avatar-preview {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar-preview .el-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+}
+
+.avatar-preview p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 @media (max-width: 900px) {

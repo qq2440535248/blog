@@ -85,6 +85,8 @@ Authorization: Bearer <access_token>
 
 ### PUT /users/me
 
+- 支持字段：`username`、`email`、`nickname`、`bio`、`avatarUrl`
+
 ### PUT /users/me/password
 
 ### POST /users/me/avatar

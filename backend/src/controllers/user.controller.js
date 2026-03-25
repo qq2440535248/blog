@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { User } = require('../models');
 const { comparePassword, hashPassword } = require('../utils/password');
 const { success, fail, ERROR_CODES } = require('../utils/http');
@@ -28,10 +29,46 @@ exports.getMe = async (req, res, next) => {
 
 exports.updateMe = async (req, res, next) => {
     try {
-        const { nickname, avatarUrl, bio } = req.body;
+        const { username, email, nickname, avatarUrl, bio } = req.body;
         const user = await User.findByPk(req.auth.userId);
         if (!user) {
             return fail(res, 'User not found', 404, ERROR_CODES.NOT_FOUND);
+        }
+
+        if (username !== undefined) {
+            const normalizedUsername = username.trim();
+            if (normalizedUsername && normalizedUsername !== user.username) {
+                const conflict = await User.findOne({
+                    where: {
+                        username: normalizedUsername,
+                        id: { [Op.ne]: user.id },
+                    },
+                });
+
+                if (conflict) {
+                    return fail(res, 'Username already exists', 409, ERROR_CODES.CONFLICT);
+                }
+
+                user.username = normalizedUsername;
+            }
+        }
+
+        if (email !== undefined) {
+            const normalizedEmail = email.trim().toLowerCase();
+            if (normalizedEmail && normalizedEmail !== user.email) {
+                const conflict = await User.findOne({
+                    where: {
+                        email: normalizedEmail,
+                        id: { [Op.ne]: user.id },
+                    },
+                });
+
+                if (conflict) {
+                    return fail(res, 'Email already exists', 409, ERROR_CODES.CONFLICT);
+                }
+
+                user.email = normalizedEmail;
+            }
         }
 
         user.nickname = nickname ?? user.nickname;

@@ -1,5 +1,21 @@
 function validateUpdateProfile(req) {
-    const { nickname, avatarUrl, bio } = req.body;
+    const { username, email, nickname, avatarUrl, bio } = req.body;
+
+    if (username !== undefined && (typeof username !== 'string' || username.trim().length < 3 || username.trim().length > 50)) {
+        return 'username 长度需在 3 到 50 之间';
+    }
+
+    if (email !== undefined) {
+        if (typeof email !== 'string') {
+            return 'email 必须是字符串';
+        }
+
+        const emailText = email.trim();
+        const emailReg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailReg.test(emailText)) {
+            return 'email 格式不正确';
+        }
+    }
 
     if (nickname !== undefined && (typeof nickname !== 'string' || nickname.length > 80)) {
         return 'nickname 不能为空且长度不能超过 80';

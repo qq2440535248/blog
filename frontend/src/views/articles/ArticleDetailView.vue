@@ -172,9 +172,10 @@ watch(
             编辑文章
           </el-button>
         </div>
-        <el-button type="primary" plain @click="toggleLike">{{
-          liked ? "取消点赞" : "点赞文章"
-        }}</el-button>
+        <el-button class="thumb-btn" :class="{ liked }" plain @click="toggleLike">
+          <span class="thumb-icon">👍</span>
+          <span>{{ liked ? "已点赞" : "点赞文章" }}</span>
+        </el-button>
         <p class="like-count">当前点赞：{{ article?.likesCount || 0 }}</p>
       </aside>
     </section>
@@ -263,6 +264,28 @@ h1 {
 
 .side-actions .el-button {
   width: 100%;
+}
+
+.thumb-btn {
+  width: 100%;
+  margin-top: 2px;
+  display: inline-flex;
+  justify-content: center;
+  gap: 8px;
+  border-color: #a3c5ff;
+  color: #2c6ae7;
+  background: #f2f7ff;
+}
+
+.thumb-btn.liked {
+  border-color: #85aaf2;
+  background: #dfeafe;
+  color: #1b4fbe;
+}
+
+.thumb-icon {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .like-count {
