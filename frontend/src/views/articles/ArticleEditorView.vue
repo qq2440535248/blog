@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../../utils/request";
@@ -14,6 +14,7 @@ const categories = ref([]);
 const tags = ref([]);
 const draftId = ref(null);
 let autoSaveTimer = null;
+const previewHtml = ref("");
 
 const form = reactive({
   title: "",
@@ -24,7 +25,9 @@ const form = reactive({
   tagIds: [],
 });
 
-const previewHtml = computed(() => renderMarkdown(form.content));
+async function refreshPreview() {
+  previewHtml.value = await renderMarkdown(form.content);
+}
 
 async function fetchOptions() {
   const [categoryRes, tagRes] = await Promise.all([
@@ -127,6 +130,7 @@ onMounted(async () => {
   try {
     await fetchOptions();
     await fetchDetail();
+    await refreshPreview();
 
     autoSaveTimer = setInterval(async () => {
       try {
@@ -145,6 +149,13 @@ onBeforeUnmount(() => {
     clearInterval(autoSaveTimer);
   }
 });
+
+watch(
+  () => form.content,
+  async () => {
+    await refreshPreview();
+  },
+);
 </script>
 
 <template>

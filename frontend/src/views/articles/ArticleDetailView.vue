@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../../utils/request";
@@ -9,10 +9,11 @@ const route = useRoute();
 const loading = ref(false);
 const article = ref(null);
 const liked = ref(false);
+const renderedContent = ref("");
 
-const renderedContent = computed(() =>
-  renderMarkdown(article.value?.content || ""),
-);
+async function refreshRenderedContent() {
+  renderedContent.value = await renderMarkdown(article.value?.content || "");
+}
 
 async function fetchDetail() {
   try {
@@ -60,7 +61,15 @@ async function toggleLike() {
 
 onMounted(async () => {
   await Promise.all([fetchDetail(), fetchLikeState()]);
+  await refreshRenderedContent();
 });
+
+watch(
+  () => article.value?.content,
+  async () => {
+    await refreshRenderedContent();
+  },
+);
 </script>
 
 <template>
