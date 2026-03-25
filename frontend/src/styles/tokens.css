@@ -29,6 +29,11 @@
   --shadow-sm: 0 8px 18px rgba(16, 24, 40, 0.06);
   --shadow-md: 0 18px 36px rgba(16, 24, 40, 0.12);
 
+  --motion-fast: 160ms;
+  --motion-base: 240ms;
+  --motion-slow: 360ms;
+  --motion-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
   --container-md: 860px;
   --container-lg: 1120px;
 }

@@ -108,7 +108,11 @@ watch(
       </div>
     </header>
 
-    <router-view />
+    <router-view v-slot="{ Component }">
+      <transition name="page" mode="out-in" appear>
+        <component :is="Component" />
+      </transition>
+    </router-view>
   </div>
 </template>
 
@@ -120,6 +124,7 @@ watch(
   border-bottom: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(10px);
+  transition: box-shadow var(--motion-base) var(--motion-ease);
 }
 
 .topbar-inner {
@@ -154,6 +159,10 @@ watch(
   font-weight: 600;
   background: transparent;
   cursor: pointer;
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
 }
 
 .nav a:hover,
