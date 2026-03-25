@@ -44,6 +44,16 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = data.data;
   }
 
+  async function logout() {
+    try {
+      await request.post('/auth/logout', {
+        refreshToken: refreshToken.value,
+      });
+    } finally {
+      clearAuth();
+    }
+  }
+
   return {
     accessToken,
     refreshToken,
@@ -54,5 +64,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     fetchMe,
+    logout,
   };
 });

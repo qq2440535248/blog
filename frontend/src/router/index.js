@@ -4,6 +4,7 @@ import HomeView from '../views/home/HomeView.vue';
 import LoginView from '../views/auth/LoginView.vue';
 import RegisterView from '../views/auth/RegisterView.vue';
 import ProfileView from '../views/auth/ProfileView.vue';
+import ChangePasswordView from '../views/auth/ChangePasswordView.vue';
 
 const routes = [
   {
@@ -27,6 +28,12 @@ const routes = [
     path: '/profile',
     name: 'profile',
     component: ProfileView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/change-password',
+    name: 'change-password',
+    component: ChangePasswordView,
     meta: { requiresAuth: true },
   },
 ];
