@@ -10,6 +10,7 @@ const articleRoutes = require('./routes/article.routes');
 const likeRoutes = require('./routes/like.routes');
 const draftRoutes = require('./routes/draft.routes');
 const errorMiddleware = require('./middlewares/error.middleware');
+const { fail, ERROR_CODES } = require('./utils/http');
 
 const app = express();
 
@@ -41,6 +42,10 @@ app.use('/api/tags', tagRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api', likeRoutes);
 app.use('/api/drafts', draftRoutes);
+
+app.use((_req, res) => {
+    return fail(res, 'Route not found', 404, ERROR_CODES.NOT_FOUND);
+});
 
 app.use(errorMiddleware);
 

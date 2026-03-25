@@ -17,6 +17,12 @@
 
 ```bash
 pnpm install
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 pnpm dev:frontend
 pnpm dev:backend
 ```
+
+## 接口文档
+
+- docs/API.md
