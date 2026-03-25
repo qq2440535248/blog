@@ -1,5 +1,13 @@
 import axios from 'axios';
 
+export function getApiErrorMessage(error, fallback = '请求失败，请稍后重试') {
+    return (
+        error?.response?.data?.message ||
+        error?.message ||
+        fallback
+    );
+}
+
 const request = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
     timeout: 10000,
@@ -20,11 +28,13 @@ request.interceptors.response.use(
         const status = error?.response?.status;
 
         if (status !== 401 || originalRequest._retry) {
+            error.userMessage = getApiErrorMessage(error);
             return Promise.reject(error);
         }
 
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) {
+            error.userMessage = getApiErrorMessage(error, '登录状态已失效，请重新登录');
             return Promise.reject(error);
         }
 
@@ -47,6 +57,7 @@ request.interceptors.response.use(
         } catch (refreshError) {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
+            refreshError.userMessage = getApiErrorMessage(refreshError, '登录状态已过期，请重新登录');
             return Promise.reject(refreshError);
         }
     }

@@ -6,6 +6,7 @@ Base URL: http://localhost:3000/api
 
 - `pnpm --filter backend test:validators`
 - `pnpm --filter backend test:api`
+- `pnpm --filter backend test:authz`
 
 ## 统一约定
 

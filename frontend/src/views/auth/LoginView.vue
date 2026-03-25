@@ -3,6 +3,7 @@ import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "../../stores/auth";
+import { getApiErrorMessage } from "../../utils/request";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -20,7 +21,9 @@ async function submitLogin() {
     ElMessage.success("登录成功");
     router.push("/");
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || "登录失败");
+    ElMessage.error(
+      error?.userMessage || getApiErrorMessage(error, "登录失败"),
+    );
   } finally {
     loading.value = false;
   }

@@ -10,6 +10,7 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../../utils/request";
+import { getApiErrorMessage } from "../../utils/request";
 import { renderMarkdown } from "../../utils/markdown";
 
 const route = useRoute();
@@ -127,7 +128,7 @@ async function saveArticle(saveAsDraft = false) {
     ElMessage.success("文章已保存");
     router.push("/articles");
   } catch (_err) {
-    ElMessage.error("保存失败");
+    ElMessage.error(getApiErrorMessage(_err, "保存失败"));
   } finally {
     loading.value = false;
   }
@@ -147,7 +148,7 @@ onMounted(async () => {
       }
     }, 20000);
   } catch (_err) {
-    ElMessage.error("初始化编辑器失败");
+    ElMessage.error(getApiErrorMessage(_err, "初始化编辑器失败"));
   }
 });
 

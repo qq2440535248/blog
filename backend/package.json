@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "test": "pnpm test:validators && pnpm test:api",
+    "test": "pnpm test:validators && pnpm test:api && pnpm test:authz",
     "test:validators": "node scripts/validator-smoke.js",
-    "test:api": "node scripts/api-smoke.js"
+    "test:api": "node scripts/api-smoke.js",
+    "test:authz": "node scripts/authz-smoke.js"
   },
   "keywords": [],
   "author": "",

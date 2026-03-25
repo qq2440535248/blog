@@ -33,4 +33,5 @@ pnpm dev:backend
 pnpm test:backend
 pnpm test:api
 pnpm test:validators
+pnpm test:authz
 ```

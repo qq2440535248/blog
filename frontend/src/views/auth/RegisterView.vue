@@ -3,6 +3,7 @@ import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "../../stores/auth";
+import { getApiErrorMessage } from "../../utils/request";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -21,7 +22,9 @@ async function submitRegister() {
     ElMessage.success("注册成功");
     router.push("/");
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || "注册失败");
+    ElMessage.error(
+      error?.userMessage || getApiErrorMessage(error, "注册失败"),
+    );
   } finally {
     loading.value = false;
   }
