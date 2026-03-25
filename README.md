@@ -26,3 +26,11 @@ pnpm dev:backend
 ## 接口文档
 
 - docs/API.md
+
+## 测试命令
+
+```bash
+pnpm test:backend
+pnpm test:api
+pnpm test:validators
+```

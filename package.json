@@ -7,6 +7,9 @@
     "dev:frontend": "pnpm --filter frontend dev",
     "dev:backend": "pnpm --filter backend dev",
     "build": "pnpm --filter frontend build",
-    "start:backend": "pnpm --filter backend start"
+    "start:backend": "pnpm --filter backend start",
+    "test:backend": "pnpm --filter backend test",
+    "test:api": "pnpm --filter backend test:api",
+    "test:validators": "pnpm --filter backend test:validators"
   }
 }
