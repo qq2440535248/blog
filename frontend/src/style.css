@@ -1,17 +1,4 @@
-:root {
-  font-family: "Segoe UI", "PingFang SC", sans-serif;
-  color: #1f2937;
-  background: #f7f8fa;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-#app {
-  min-height: 100vh;
-}
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/element-theme.css";
+@import "./styles/layout.css";

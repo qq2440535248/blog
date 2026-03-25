@@ -1,0 +1,27 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at 8% 8%, #dce9ff 0%, transparent 36%),
+    radial-gradient(circle at 100% 0%, #d5f5ee 0%, transparent 32%),
+    var(--color-bg);
+}
+
+a {
+  color: inherit;
+}
+
+main {
+  display: block;
+}
