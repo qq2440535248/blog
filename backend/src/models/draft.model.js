@@ -26,7 +26,6 @@ const Draft = sequelize.define(
         content: {
             type: DataTypes.TEXT('long'),
             allowNull: false,
-            defaultValue: '',
         },
         categoryId: {
             type: DataTypes.INTEGER.UNSIGNED,
