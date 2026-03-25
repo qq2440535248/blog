@@ -157,7 +157,11 @@ onMounted(fetchArticles);
                   >
                     详情
                   </el-button>
-                  <el-button text type="primary" @click="goEditor(scope.row.id)">
+                  <el-button
+                    text
+                    type="primary"
+                    @click="goEditor(scope.row.id)"
+                  >
                     编辑
                   </el-button>
                   <el-button

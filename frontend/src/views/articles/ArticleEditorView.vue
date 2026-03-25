@@ -159,7 +159,9 @@ function appendUniqueInputValue(currentValue, nextValue) {
   }
 
   const items = parseInputItems(currentValue);
-  const exists = items.some((item) => normalizeName(item) === normalizeName(target));
+  const exists = items.some(
+    (item) => normalizeName(item) === normalizeName(target),
+  );
   if (exists) {
     return String(currentValue || "");
   }
@@ -247,7 +249,11 @@ async function fetchDetail() {
     form.categoryId = draft.categoryId;
     form.categoryName = getCategoryNameById(draft.categoryId);
     tagInput.value = (draft.tagIds || [])
-      .map((id) => tags.value.find((item) => Number(item.id) === Number(id))?.name || String(id))
+      .map(
+        (id) =>
+          tags.value.find((item) => Number(item.id) === Number(id))?.name ||
+          String(id),
+      )
       .join(" / ");
     form.status = "draft";
     return;
