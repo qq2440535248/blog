@@ -87,6 +87,12 @@ Authorization: Bearer <access_token>
 
 ### PUT /users/me/password
 
+### POST /users/me/avatar
+
+- Content-Type: `multipart/form-data`
+- 字段：`avatar`（图片文件，<=2MB）
+- 响应 data：更新后的用户信息（含 `avatarUrl`）
+
 ## 文章模块
 
 ### GET /articles

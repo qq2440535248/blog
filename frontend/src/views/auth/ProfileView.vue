@@ -5,6 +5,7 @@ import message from "../../utils/message";
 
 const loading = ref(false);
 const formRef = ref();
+const avatarUploading = ref(false);
 const form = reactive({
   username: "",
   email: "",
@@ -15,23 +16,44 @@ const form = reactive({
 
 const rules = {
   nickname: [{ max: 30, message: "昵称最多 30 个字符", trigger: "blur" }],
-  avatarUrl: [
-    {
-      validator: (_rule, value, callback) => {
-        if (!value) {
-          callback();
-          return;
-        }
-
-        const ok = /^https?:\/\/.+/i.test(value.trim());
-        callback(
-          ok ? undefined : new Error("头像地址需以 http:// 或 https:// 开头"),
-        );
-      },
-      trigger: "blur",
-    },
-  ],
 };
+
+function beforeAvatarUpload(file) {
+  const isImage = file.type?.startsWith("image/");
+  if (!isImage) {
+    message.error("仅支持上传图片文件");
+    return false;
+  }
+
+  const isLt2M = file.size / 1024 / 1024 < 2;
+  if (!isLt2M) {
+    message.error("头像大小不能超过 2MB");
+    return false;
+  }
+
+  return true;
+}
+
+async function uploadAvatarRequest(option) {
+  try {
+    avatarUploading.value = true;
+    const formData = new FormData();
+    formData.append("avatar", option.file);
+
+    const { data } = await request.post("/users/me/avatar", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    form.avatarUrl = data.data.avatarUrl || "";
+    message.success("头像上传成功");
+    option.onSuccess?.(data.data);
+  } catch (error) {
+    message.error(error?.response?.data?.message || "头像上传失败");
+    option.onError?.(error);
+  } finally {
+    avatarUploading.value = false;
+  }
+}
 
 async function fetchProfile() {
   try {
@@ -57,7 +79,6 @@ async function saveProfile() {
     loading.value = true;
     await request.put("/users/me", {
       nickname: form.nickname.trim(),
-      avatarUrl: form.avatarUrl.trim(),
       bio: form.bio.trim(),
     });
     message.success("保存成功");
@@ -102,11 +123,16 @@ onMounted(fetchProfile);
           <el-form-item label="昵称" prop="nickname">
             <el-input v-model="form.nickname" placeholder="展示给他人的名称" />
           </el-form-item>
-          <el-form-item label="头像 URL" prop="avatarUrl">
-            <el-input
-              v-model="form.avatarUrl"
-              placeholder="https://example.com/avatar.png"
-            />
+          <el-form-item label="头像上传">
+            <el-upload
+              class="avatar-uploader"
+              :show-file-list="false"
+              :before-upload="beforeAvatarUpload"
+              :http-request="uploadAvatarRequest"
+            >
+              <el-button :loading="avatarUploading" plain>上传头像</el-button>
+            </el-upload>
+            <p class="upload-tip">支持 JPG/PNG/GIF/WebP，大小不超过 2MB</p>
           </el-form-item>
           <el-form-item label="简介">
             <el-input
@@ -174,6 +200,12 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.upload-tip {
+  margin: 8px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
 }
 
 @media (max-width: 900px) {

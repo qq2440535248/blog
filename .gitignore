@@ -7,3 +7,5 @@ Thumbs.db
 !.env.example
 frontend/dist/
 backend/logs/
+backend/uploads/*
+!backend/uploads/.gitkeep

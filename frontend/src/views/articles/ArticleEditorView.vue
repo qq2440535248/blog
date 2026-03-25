@@ -10,8 +10,9 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import request from "../../utils/request";
 import { getApiErrorMessage } from "../../utils/request";
-import { renderMarkdown } from "../../utils/markdown";
+import { bindMarkdownCodeCopy, renderMarkdown } from "../../utils/markdown";
 import message from "../../utils/message";
+import { useCodeTheme } from "../../composables/useCodeTheme";
 
 const route = useRoute();
 const router = useRouter();
@@ -23,8 +24,11 @@ const tags = ref([]);
 const draftId = ref(null);
 const saveStatus = ref("自动保存已开启");
 const editorRef = ref();
+const markdownContainerRef = ref();
 let autoSaveTimer = null;
 const previewHtml = ref("");
+const { codeTheme, toggleCodeTheme } = useCodeTheme();
+let unbindCodeCopy = null;
 
 const wordCount = computed(() => {
   const text = (form.content || "").replace(/\s+/g, "").trim();
@@ -194,6 +198,8 @@ onMounted(async () => {
         // 自动保存失败不打断编辑流程
       }
     }, 20000);
+
+    unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message);
   } catch (_err) {
     message.error(getApiErrorMessage(_err, "初始化编辑器失败"));
   }
@@ -203,12 +209,30 @@ onBeforeUnmount(() => {
   if (autoSaveTimer) {
     clearInterval(autoSaveTimer);
   }
+
+  if (unbindCodeCopy) {
+    unbindCodeCopy();
+  }
 });
 
 watch(
   () => form.content,
   async () => {
     await refreshPreview();
+  },
+);
+
+watch(
+  () => markdownContainerRef.value,
+  (el) => {
+    if (!el) {
+      return;
+    }
+
+    if (unbindCodeCopy) {
+      unbindCodeCopy();
+    }
+    unbindCodeCopy = bindMarkdownCodeCopy(el, message);
   },
 );
 </script>
@@ -227,6 +251,9 @@ watch(
           <el-tag type="warning" effect="plain"
             >阅读 {{ readingMinutes }} 分钟</el-tag
           >
+          <el-button size="small" plain @click="toggleCodeTheme">
+            代码主题：{{ codeTheme === "dark" ? "深色" : "浅色" }}
+          </el-button>
         </div>
       </header>
 
@@ -309,7 +336,12 @@ watch(
             v-if="!form.content.trim()"
             description="开始输入正文后，这里将实时显示渲染结果"
           />
-          <div class="preview-content markdown-body" v-html="previewHtml" />
+          <div
+            ref="markdownContainerRef"
+            class="preview-content markdown-body"
+            :data-code-theme="codeTheme"
+            v-html="previewHtml"
+          />
         </el-card>
       </section>
     </section>

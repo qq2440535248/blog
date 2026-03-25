@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import request from "../../utils/request";
-import { renderMarkdown } from "../../utils/markdown";
+import { bindMarkdownCodeCopy, renderMarkdown } from "../../utils/markdown";
 import message from "../../utils/message";
+import { useCodeTheme } from "../../composables/useCodeTheme";
 
 const route = useRoute();
 const router = useRouter();
@@ -11,6 +12,9 @@ const loading = ref(false);
 const article = ref(null);
 const liked = ref(false);
 const renderedContent = ref("");
+const markdownContainerRef = ref();
+const { codeTheme, toggleCodeTheme } = useCodeTheme();
+let unbindCodeCopy = null;
 
 const wordCount = computed(() => {
   const text = (article.value?.content || "").replace(/\s+/g, "").trim();
@@ -95,12 +99,33 @@ async function toggleLike() {
 onMounted(async () => {
   await Promise.all([fetchDetail(), fetchLikeState()]);
   await refreshRenderedContent();
+  unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message);
+});
+
+onUnmounted(() => {
+  if (unbindCodeCopy) {
+    unbindCodeCopy();
+  }
 });
 
 watch(
   () => article.value?.content,
   async () => {
     await refreshRenderedContent();
+  },
+);
+
+watch(
+  () => markdownContainerRef.value,
+  (el) => {
+    if (!el) {
+      return;
+    }
+
+    if (unbindCodeCopy) {
+      unbindCodeCopy();
+    }
+    unbindCodeCopy = bindMarkdownCodeCopy(el, message);
   },
 );
 </script>
@@ -119,7 +144,17 @@ watch(
           <span>阅读：约 {{ readingMinutes }} 分钟</span>
           <span>更新：{{ updatedAtText }}</span>
         </div>
-        <div class="markdown-body" v-html="renderedContent" />
+        <div class="code-theme-row">
+          <el-button size="small" plain @click="toggleCodeTheme">
+            代码主题：{{ codeTheme === "dark" ? "深色" : "浅色" }}
+          </el-button>
+        </div>
+        <div
+          ref="markdownContainerRef"
+          class="markdown-body"
+          :data-code-theme="codeTheme"
+          v-html="renderedContent"
+        />
       </article>
 
       <aside class="side-card">
@@ -194,6 +229,10 @@ h1 {
   margin-top: 20px;
   border-top: 1px solid var(--color-border);
   padding-top: 20px;
+}
+
+.code-theme-row {
+  margin-top: 14px;
 }
 
 .side-card {

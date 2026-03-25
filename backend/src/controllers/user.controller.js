@@ -71,3 +71,25 @@ exports.changePassword = async (req, res, next) => {
         return next(err);
     }
 };
+
+exports.uploadAvatar = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            return fail(res, 'Avatar file is required', 400, ERROR_CODES.BAD_REQUEST);
+        }
+
+        const user = await User.findByPk(req.auth.userId);
+        if (!user) {
+            return fail(res, 'User not found', 404, ERROR_CODES.NOT_FOUND);
+        }
+
+        const avatarPath = `/uploads/avatars/${req.file.filename}`;
+        const avatarUrl = `${req.protocol}://${req.get('host')}${avatarPath}`;
+        user.avatarUrl = avatarUrl;
+        await user.save();
+
+        return success(res, toUserDto(user), 'Avatar uploaded');
+    } catch (err) {
+        return next(err);
+    }
+};
