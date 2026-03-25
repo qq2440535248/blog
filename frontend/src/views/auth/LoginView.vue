@@ -9,13 +9,30 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const loading = ref(false);
+const formRef = ref();
 const form = reactive({
   email: "",
   password: "",
 });
 
+const rules = {
+  email: [
+    { required: true, message: "请输入邮箱", trigger: "blur" },
+    { type: "email", message: "邮箱格式不正确", trigger: "blur" },
+  ],
+  password: [
+    { required: true, message: "请输入密码", trigger: "blur" },
+    { min: 6, message: "密码至少 6 位", trigger: "blur" },
+  ],
+};
+
 async function submitLogin() {
   try {
+    const valid = await formRef.value?.validate();
+    if (!valid) {
+      return;
+    }
+
     loading.value = true;
     await authStore.login(form);
     ElMessage.success("登录成功");
@@ -33,11 +50,17 @@ async function submitLogin() {
 <template>
   <main class="page">
     <h2>登录</h2>
-    <el-form :model="form" label-width="80px" @submit.prevent="submitLogin">
-      <el-form-item label="邮箱">
+    <el-form
+      ref="formRef"
+      :model="form"
+      :rules="rules"
+      label-width="80px"
+      @submit.prevent="submitLogin"
+    >
+      <el-form-item label="邮箱" prop="email">
         <el-input v-model="form.email" placeholder="请输入邮箱" />
       </el-form-item>
-      <el-form-item label="密码">
+      <el-form-item label="密码" prop="password">
         <el-input
           v-model="form.password"
           type="password"

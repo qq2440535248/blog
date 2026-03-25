@@ -4,6 +4,8 @@ const authValidator = require('../src/validators/auth.validator');
 const articleValidator = require('../src/validators/article.validator');
 const draftValidator = require('../src/validators/draft.validator');
 const userValidator = require('../src/validators/user.validator');
+const taxonomyValidator = require('../src/validators/taxonomy.validator');
+const likeValidator = require('../src/validators/like.validator');
 
 function req(body = {}, params = {}) {
     return { body, params };
@@ -26,6 +28,14 @@ function run() {
 
     assert.equal(draftValidator.validateDraftCreateOrUpdate(req({ title: 'd', content: 'c', tagIds: [1] })), true);
     assert.notEqual(draftValidator.validateDraftCreateOrUpdate(req({ tagIds: ['x'] })), true);
+
+    assert.equal(taxonomyValidator.validateNameBody(req({ name: '分类' })), true);
+    assert.notEqual(taxonomyValidator.validateNameBody(req({ name: '' })), true);
+    assert.equal(taxonomyValidator.validateIdParam(req({}, { id: '1' })), true);
+    assert.notEqual(taxonomyValidator.validateIdParam(req({}, { id: '-1' })), true);
+
+    assert.equal(likeValidator.validateArticleIdParam(req({}, { id: '2' })), true);
+    assert.notEqual(likeValidator.validateArticleIdParam(req({}, { id: 'abc' })), true);
 
     console.log('validator smoke tests passed');
 }
