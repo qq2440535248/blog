@@ -1,4 +1,5 @@
 const { Tag } = require('../models');
+const { success, fail, ERROR_CODES } = require('../utils/http');
 
 exports.list = async (req, res, next) => {
     try {
@@ -6,7 +7,7 @@ exports.list = async (req, res, next) => {
             where: { userId: req.auth.userId },
             order: [['id', 'DESC']],
         });
-        return res.json({ data: items });
+        return success(res, items);
     } catch (err) {
         return next(err);
     }
@@ -16,7 +17,7 @@ exports.create = async (req, res, next) => {
     try {
         const { name } = req.body;
         if (!name) {
-            return res.status(400).json({ message: 'name is required' });
+            return fail(res, 'name is required', 400, ERROR_CODES.BAD_REQUEST);
         }
 
         const tag = await Tag.create({
@@ -24,7 +25,7 @@ exports.create = async (req, res, next) => {
             name,
         });
 
-        return res.status(201).json({ data: tag });
+        return success(res, tag, 'Tag created', 201);
     } catch (err) {
         return next(err);
     }
@@ -37,13 +38,13 @@ exports.update = async (req, res, next) => {
         });
 
         if (!tag) {
-            return res.status(404).json({ message: 'Tag not found' });
+            return fail(res, 'Tag not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
         tag.name = req.body.name || tag.name;
         await tag.save();
 
-        return res.json({ data: tag });
+        return success(res, tag, 'Tag updated');
     } catch (err) {
         return next(err);
     }
@@ -56,10 +57,10 @@ exports.remove = async (req, res, next) => {
         });
 
         if (!count) {
-            return res.status(404).json({ message: 'Tag not found' });
+            return fail(res, 'Tag not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
-        return res.json({ message: 'Tag deleted' });
+        return success(res, null, 'Tag deleted');
     } catch (err) {
         return next(err);
     }

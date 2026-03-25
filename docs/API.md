@@ -2,6 +2,11 @@
 
 Base URL: http://localhost:3000/api
 
+测试脚本：
+
+- `pnpm --filter backend test:validators`
+- `pnpm --filter backend test:api`
+
 ## 统一约定
 
 - 成功响应
@@ -80,6 +85,7 @@ Authorization: Bearer <access_token>
 ### GET /articles
 
 - query: q, categoryId, tag, page, pageSize
+- 响应 data 结构：`{ list: [], pagination: { page, pageSize, total } }`
 
 ### GET /articles/:id
 
@@ -120,6 +126,8 @@ Authorization: Bearer <access_token>
 ## 草稿模块
 
 ### GET /drafts
+
+- 响应 data 结构：`{ list: [], pagination: { page, pageSize, total } }`
 
 ### GET /drafts/:id
 

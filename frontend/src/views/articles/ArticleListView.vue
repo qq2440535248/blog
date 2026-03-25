@@ -29,11 +29,11 @@ async function fetchArticles() {
         pageSize: pagination.pageSize,
       },
     });
-    articles.value = data.data;
-    pagination.total = data.pagination.total;
+    articles.value = data.data.list;
+    pagination.total = data.data.pagination.total;
     setCache(
       cacheKey,
-      { data: data.data, total: data.pagination.total },
+      { data: data.data.list, total: data.data.pagination.total },
       2 * 60 * 1000,
     );
   } catch (_err) {

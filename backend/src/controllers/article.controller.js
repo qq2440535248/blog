@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Article, Category, Tag } = require('../models');
+const { success, fail, ERROR_CODES } = require('../utils/http');
 
 function parsePagination(query) {
     const page = Math.max(Number(query.page || 1), 1);
@@ -45,8 +46,8 @@ exports.list = async (req, res, next) => {
             limit: pageSize,
         });
 
-        return res.json({
-            data: rows,
+        return success(res, {
+            list: rows,
             pagination: {
                 page,
                 pageSize,
@@ -69,10 +70,10 @@ exports.detail = async (req, res, next) => {
         });
 
         if (!article) {
-            return res.status(404).json({ message: 'Article not found' });
+            return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
-        return res.json({ data: article });
+        return success(res, article);
     } catch (err) {
         return next(err);
     }
@@ -83,7 +84,7 @@ exports.create = async (req, res, next) => {
         const { title, content, excerpt, categoryId, tagIds = [], status = 'published' } = req.body;
 
         if (!title || !content) {
-            return res.status(400).json({ message: 'title and content are required' });
+            return fail(res, 'title and content are required', 400, ERROR_CODES.BAD_REQUEST);
         }
 
         const article = await Article.create({
@@ -104,7 +105,7 @@ exports.create = async (req, res, next) => {
             include: [{ model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] }],
         });
 
-        return res.status(201).json({ data: created });
+        return success(res, created, 'Article created', 201);
     } catch (err) {
         return next(err);
     }
@@ -117,7 +118,7 @@ exports.update = async (req, res, next) => {
         });
 
         if (!article) {
-            return res.status(404).json({ message: 'Article not found' });
+            return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
         const { title, content, excerpt, categoryId, tagIds, status } = req.body;
@@ -138,7 +139,7 @@ exports.update = async (req, res, next) => {
             include: [{ model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] }],
         });
 
-        return res.json({ data: updated });
+        return success(res, updated, 'Article updated');
     } catch (err) {
         return next(err);
     }
@@ -151,10 +152,10 @@ exports.remove = async (req, res, next) => {
         });
 
         if (!count) {
-            return res.status(404).json({ message: 'Article not found' });
+            return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
-        return res.json({ message: 'Article deleted' });
+        return success(res, null, 'Article deleted');
     } catch (err) {
         return next(err);
     }

@@ -1,4 +1,5 @@
 const { Draft, Tag, Article } = require('../models');
+const { success, fail, ERROR_CODES } = require('../utils/http');
 
 function parsePagination(query) {
     const page = Math.max(Number(query.page || 1), 1);
@@ -16,8 +17,8 @@ exports.list = async (req, res, next) => {
             limit: pageSize,
         });
 
-        return res.json({
-            data: rows,
+        return success(res, {
+            list: rows,
             pagination: { page, pageSize, total: count },
         });
     } catch (err) {
@@ -32,10 +33,10 @@ exports.detail = async (req, res, next) => {
         });
 
         if (!draft) {
-            return res.status(404).json({ message: 'Draft not found' });
+            return fail(res, 'Draft not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
-        return res.json({ data: draft });
+        return success(res, draft);
     } catch (err) {
         return next(err);
     }
@@ -54,7 +55,7 @@ exports.create = async (req, res, next) => {
             tagIds,
         });
 
-        return res.status(201).json({ data: draft });
+        return success(res, draft, 'Draft created', 201);
     } catch (err) {
         return next(err);
     }
@@ -67,7 +68,7 @@ exports.update = async (req, res, next) => {
         });
 
         if (!draft) {
-            return res.status(404).json({ message: 'Draft not found' });
+            return fail(res, 'Draft not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
         const { title, excerpt, content, categoryId, tagIds } = req.body;
@@ -78,7 +79,7 @@ exports.update = async (req, res, next) => {
         draft.tagIds = tagIds ?? draft.tagIds;
         await draft.save();
 
-        return res.json({ data: draft });
+        return success(res, draft, 'Draft updated');
     } catch (err) {
         return next(err);
     }
@@ -91,10 +92,10 @@ exports.remove = async (req, res, next) => {
         });
 
         if (!count) {
-            return res.status(404).json({ message: 'Draft not found' });
+            return fail(res, 'Draft not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
-        return res.json({ message: 'Draft deleted' });
+        return success(res, null, 'Draft deleted');
     } catch (err) {
         return next(err);
     }
@@ -107,11 +108,11 @@ exports.publish = async (req, res, next) => {
         });
 
         if (!draft) {
-            return res.status(404).json({ message: 'Draft not found' });
+            return fail(res, 'Draft not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
         if (!draft.title || !draft.content) {
-            return res.status(400).json({ message: 'Draft title and content are required to publish' });
+            return fail(res, 'Draft title and content are required to publish', 400, ERROR_CODES.BAD_REQUEST);
         }
 
         const article = await Article.create({
@@ -130,10 +131,7 @@ exports.publish = async (req, res, next) => {
 
         await draft.destroy();
 
-        return res.json({
-            message: 'Draft published',
-            data: { articleId: article.id },
-        });
+        return success(res, { articleId: article.id }, 'Draft published');
     } catch (err) {
         return next(err);
     }

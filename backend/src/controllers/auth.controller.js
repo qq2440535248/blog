@@ -1,6 +1,7 @@
 const { User, RefreshToken } = require('../models');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../utils/jwt');
+const { success, fail, ERROR_CODES } = require('../utils/http');
 
 function toUserDto(user) {
     return {
@@ -23,18 +24,18 @@ exports.register = async (req, res, next) => {
         const { username, email, password } = req.body;
 
         if (!username || !email || !password) {
-            return res.status(400).json({ message: 'username, email and password are required' });
+            return fail(res, 'username, email and password are required', 400, ERROR_CODES.BAD_REQUEST);
         }
 
         const existedByEmail = await User.findOne({ where: { email } });
         const existedByUsername = await User.findOne({ where: { username } });
 
         if (existedByEmail) {
-            return res.status(409).json({ message: 'Email already exists' });
+            return fail(res, 'Email already exists', 409, ERROR_CODES.CONFLICT);
         }
 
         if (existedByUsername) {
-            return res.status(409).json({ message: 'Username already exists' });
+            return fail(res, 'Username already exists', 409, ERROR_CODES.CONFLICT);
         }
 
         const passwordHash = await hashPassword(password);
@@ -44,14 +45,16 @@ exports.register = async (req, res, next) => {
         const refreshToken = signRefreshToken(user.id);
         await saveRefreshToken(user.id, refreshToken);
 
-        return res.status(201).json({
-            message: 'Register success',
-            data: {
+        return success(
+            res,
+            {
                 accessToken,
                 refreshToken,
                 user: toUserDto(user),
             },
-        });
+            'Register success',
+            201
+        );
     } catch (err) {
         return next(err);
     }
@@ -62,32 +65,29 @@ exports.login = async (req, res, next) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ message: 'email and password are required' });
+            return fail(res, 'email and password are required', 400, ERROR_CODES.BAD_REQUEST);
         }
 
         const user = await User.findOne({ where: { email } });
 
         if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return fail(res, 'Invalid credentials', 401, ERROR_CODES.UNAUTHORIZED);
         }
 
         const ok = await comparePassword(password, user.passwordHash);
         if (!ok) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return fail(res, 'Invalid credentials', 401, ERROR_CODES.UNAUTHORIZED);
         }
 
         const accessToken = signAccessToken(user.id);
         const refreshToken = signRefreshToken(user.id);
         await saveRefreshToken(user.id, refreshToken);
 
-        return res.json({
-            message: 'Login success',
-            data: {
-                accessToken,
-                refreshToken,
-                user: toUserDto(user),
-            },
-        });
+        return success(res, {
+            accessToken,
+            refreshToken,
+            user: toUserDto(user),
+        }, 'Login success');
     } catch (err) {
         return next(err);
     }
@@ -98,27 +98,24 @@ exports.refresh = async (req, res, next) => {
         const { refreshToken } = req.body;
 
         if (!refreshToken) {
-            return res.status(400).json({ message: 'refreshToken is required' });
+            return fail(res, 'refreshToken is required', 400, ERROR_CODES.BAD_REQUEST);
         }
 
         let payload;
         try {
             payload = verifyRefreshToken(refreshToken);
         } catch (_err) {
-            return res.status(401).json({ message: 'Refresh token invalid or expired' });
+            return fail(res, 'Refresh token invalid or expired', 401, ERROR_CODES.UNAUTHORIZED);
         }
 
         const tokenRecord = await RefreshToken.findOne({ where: { token: refreshToken, revoked: false } });
 
         if (!tokenRecord) {
-            return res.status(401).json({ message: 'Refresh token not found' });
+            return fail(res, 'Refresh token not found', 401, ERROR_CODES.UNAUTHORIZED);
         }
 
         const accessToken = signAccessToken(Number(payload.sub));
-        return res.json({
-            message: 'Refresh success',
-            data: { accessToken },
-        });
+        return success(res, { accessToken }, 'Refresh success');
     } catch (err) {
         return next(err);
     }
@@ -132,7 +129,7 @@ exports.logout = async (req, res, next) => {
             await RefreshToken.update({ revoked: true }, { where: { token: refreshToken } });
         }
 
-        return res.json({ message: 'Logout success' });
+        return success(res, null, 'Logout success');
     } catch (err) {
         return next(err);
     }

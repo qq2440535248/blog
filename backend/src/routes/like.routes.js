@@ -4,9 +4,8 @@ const likeController = require('../controllers/like.controller');
 
 const router = express.Router();
 
-router.use(authMiddleware);
-router.post('/articles/:id/like', likeController.like);
-router.delete('/articles/:id/like', likeController.unlike);
-router.get('/articles/:id/is-liked', likeController.isLiked);
+router.post('/articles/:id/like', authMiddleware, likeController.like);
+router.delete('/articles/:id/like', authMiddleware, likeController.unlike);
+router.get('/articles/:id/is-liked', authMiddleware, likeController.isLiked);
 
 module.exports = router;

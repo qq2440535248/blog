@@ -1,4 +1,5 @@
 const { Category } = require('../models');
+const { success, fail, ERROR_CODES } = require('../utils/http');
 
 exports.list = async (req, res, next) => {
     try {
@@ -6,7 +7,7 @@ exports.list = async (req, res, next) => {
             where: { userId: req.auth.userId },
             order: [['id', 'DESC']],
         });
-        return res.json({ data: items });
+        return success(res, items);
     } catch (err) {
         return next(err);
     }
@@ -16,7 +17,7 @@ exports.create = async (req, res, next) => {
     try {
         const { name } = req.body;
         if (!name) {
-            return res.status(400).json({ message: 'name is required' });
+            return fail(res, 'name is required', 400, ERROR_CODES.BAD_REQUEST);
         }
 
         const category = await Category.create({
@@ -24,7 +25,7 @@ exports.create = async (req, res, next) => {
             name,
         });
 
-        return res.status(201).json({ data: category });
+        return success(res, category, 'Category created', 201);
     } catch (err) {
         return next(err);
     }
@@ -37,13 +38,13 @@ exports.update = async (req, res, next) => {
         });
 
         if (!category) {
-            return res.status(404).json({ message: 'Category not found' });
+            return fail(res, 'Category not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
         category.name = req.body.name || category.name;
         await category.save();
 
-        return res.json({ data: category });
+        return success(res, category, 'Category updated');
     } catch (err) {
         return next(err);
     }
@@ -56,10 +57,10 @@ exports.remove = async (req, res, next) => {
         });
 
         if (!count) {
-            return res.status(404).json({ message: 'Category not found' });
+            return fail(res, 'Category not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
-        return res.json({ message: 'Category deleted' });
+        return success(res, null, 'Category deleted');
     } catch (err) {
         return next(err);
     }

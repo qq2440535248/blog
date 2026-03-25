@@ -18,8 +18,8 @@ async function fetchDrafts() {
         pageSize: pagination.pageSize,
       },
     });
-    drafts.value = data.data;
-    pagination.total = data.pagination.total;
+    drafts.value = data.data.list;
+    pagination.total = data.data.pagination.total;
   } catch (_err) {
     ElMessage.error("加载草稿失败");
   } finally {
