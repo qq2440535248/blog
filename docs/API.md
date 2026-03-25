@@ -119,9 +119,15 @@ Authorization: Bearer <access_token>
 
 ### POST /articles/:id/like
 
+- 响应 data 结构：`{ liked: true, likesCount: number }`
+
 ### DELETE /articles/:id/like
 
+- 响应 data 结构：`{ liked: false, likesCount: number }`
+
 ### GET /articles/:id/is-liked
+
+- 响应 data 结构：`{ liked: boolean }`
 
 ## 草稿模块
 

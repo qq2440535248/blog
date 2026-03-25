@@ -1,4 +1,5 @@
 const { Article, Like } = require('../models');
+const { success, fail, ERROR_CODES } = require('../utils/http');
 
 async function refreshLikesCount(articleId) {
     const count = await Like.count({ where: { articleId } });
@@ -12,7 +13,7 @@ exports.like = async (req, res, next) => {
         const article = await Article.findByPk(articleId);
 
         if (!article) {
-            return res.status(404).json({ message: 'Article not found' });
+            return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
         await Like.findOrCreate({
@@ -21,7 +22,7 @@ exports.like = async (req, res, next) => {
         });
 
         const likesCount = await refreshLikesCount(articleId);
-        return res.json({ liked: true, likesCount });
+        return success(res, { liked: true, likesCount }, 'Like success');
     } catch (err) {
         return next(err);
     }
@@ -36,7 +37,7 @@ exports.unlike = async (req, res, next) => {
         });
 
         const likesCount = await refreshLikesCount(articleId);
-        return res.json({ liked: false, likesCount });
+        return success(res, { liked: false, likesCount }, 'Unlike success');
     } catch (err) {
         return next(err);
     }
@@ -46,7 +47,7 @@ exports.isLiked = async (req, res, next) => {
     try {
         const articleId = Number(req.params.id);
         const like = await Like.findOne({ where: { userId: req.auth.userId, articleId } });
-        return res.json({ liked: Boolean(like) });
+        return success(res, { liked: Boolean(like) });
     } catch (err) {
         return next(err);
     }

@@ -30,7 +30,7 @@ async function fetchDetail() {
 async function fetchLikeState() {
   try {
     const { data } = await request.get(`/articles/${route.params.id}/is-liked`);
-    liked.value = Boolean(data.liked);
+    liked.value = Boolean(data.data.liked);
   } catch (_err) {
     liked.value = false;
   }
@@ -44,7 +44,7 @@ async function toggleLike() {
       );
       liked.value = false;
       if (article.value) {
-        article.value.likesCount = data.likesCount;
+        article.value.likesCount = data.data.likesCount;
       }
       return;
     }
@@ -52,7 +52,7 @@ async function toggleLike() {
     const { data } = await request.post(`/articles/${route.params.id}/like`);
     liked.value = true;
     if (article.value) {
-      article.value.likesCount = data.likesCount;
+      article.value.likesCount = data.data.likesCount;
     }
   } catch (_err) {
     ElMessage.error("操作失败");
