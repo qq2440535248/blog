@@ -1,11 +1,12 @@
 <script setup>
 import { reactive, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "../../stores/auth";
 import { getApiErrorMessage } from "../../utils/request";
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const loading = ref(false);
@@ -41,7 +42,8 @@ async function submitLogin() {
     loading.value = true;
     await authStore.login(payload);
     ElMessage.success("登录成功");
-    router.push("/");
+    const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
+    router.push(redirect);
   } catch (error) {
     ElMessage.error(
       error?.userMessage || getApiErrorMessage(error, "登录失败"),

@@ -114,6 +114,15 @@ exports.refresh = async (req, res, next) => {
             return fail(res, 'Refresh token not found', 401, ERROR_CODES.UNAUTHORIZED);
         }
 
+        if (tokenRecord.userId !== Number(payload.sub)) {
+            return fail(res, 'Refresh token owner mismatch', 401, ERROR_CODES.UNAUTHORIZED);
+        }
+
+        if (new Date(tokenRecord.expiresAt).getTime() <= Date.now()) {
+            await tokenRecord.update({ revoked: true });
+            return fail(res, 'Refresh token expired', 401, ERROR_CODES.UNAUTHORIZED);
+        }
+
         const accessToken = signAccessToken(Number(payload.sub));
         return success(res, { accessToken }, 'Refresh success');
     } catch (err) {

@@ -72,6 +72,8 @@ Authorization: Bearer <access_token>
 
 ### POST /auth/refresh
 
+- 服务端会校验：JWT 签名、数据库记录存在且未撤销、过期时间未超时、token 用户归属一致
+
 ### POST /auth/logout
 
 ## 用户模块

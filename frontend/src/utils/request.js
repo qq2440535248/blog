@@ -13,6 +13,19 @@ const request = axios.create({
     timeout: 10000,
 });
 
+function redirectToLogin() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    if (window.location.pathname === '/login') {
+        return;
+    }
+
+    const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/login?redirect=${redirect}`;
+}
+
 request.interceptors.request.use((config) => {
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -35,6 +48,9 @@ request.interceptors.response.use(
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) {
             error.userMessage = getApiErrorMessage(error, '登录状态已失效，请重新登录');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            redirectToLogin();
             return Promise.reject(error);
         }
 
@@ -58,6 +74,7 @@ request.interceptors.response.use(
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             refreshError.userMessage = getApiErrorMessage(refreshError, '登录状态已过期，请重新登录');
+            redirectToLogin();
             return Promise.reject(refreshError);
         }
     }
