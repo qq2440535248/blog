@@ -42,7 +42,8 @@ async function submitLogin() {
     loading.value = true;
     await authStore.login(payload);
     ElMessage.success("登录成功");
-    const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/";
+    const redirect =
+      typeof route.query.redirect === "string" ? route.query.redirect : "/";
     router.push(redirect);
   } catch (error) {
     ElMessage.error(

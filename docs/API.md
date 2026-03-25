@@ -75,6 +75,7 @@ Authorization: Bearer <access_token>
 ### POST /auth/refresh
 
 - 服务端会校验：JWT 签名、数据库记录存在且未撤销、过期时间未超时、token 用户归属一致
+- 响应 data：`{ accessToken, refreshToken }`（刷新成功后会轮换 refresh token）
 
 ### POST /auth/logout
 

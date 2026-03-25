@@ -123,8 +123,17 @@ exports.refresh = async (req, res, next) => {
             return fail(res, 'Refresh token expired', 401, ERROR_CODES.UNAUTHORIZED);
         }
 
-        const accessToken = signAccessToken(Number(payload.sub));
-        return success(res, { accessToken }, 'Refresh success');
+        await tokenRecord.update({ revoked: true });
+
+        const userId = Number(payload.sub);
+        const accessToken = signAccessToken(userId);
+        const newRefreshToken = signRefreshToken(userId);
+        await saveRefreshToken(userId, newRefreshToken);
+
+        return success(res, {
+            accessToken,
+            refreshToken: newRefreshToken,
+        }, 'Refresh success');
     } catch (err) {
         return next(err);
     }

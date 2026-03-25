@@ -63,11 +63,15 @@ request.interceptors.response.use(
             );
 
             const newAccessToken = data?.data?.accessToken;
+            const newRefreshToken = data?.data?.refreshToken;
             if (!newAccessToken) {
                 throw new Error('Refresh failed');
             }
 
             localStorage.setItem('access_token', newAccessToken);
+            if (newRefreshToken) {
+                localStorage.setItem('refresh_token', newRefreshToken);
+            }
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return request(originalRequest);
         } catch (refreshError) {
