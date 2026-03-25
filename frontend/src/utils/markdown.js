@@ -68,11 +68,28 @@ export function bindMarkdownCodeCopy(container, message, options = {}) {
         });
     };
 
+    function findClosest(target, selector) {
+        if (!target) {
+            return null;
+        }
+
+        if (target instanceof Element) {
+            return target.closest(selector);
+        }
+
+        const parent = target.parentElement;
+        return parent ? parent.closest(selector) : null;
+    }
+
     const handleClick = async (event) => {
-        const themeButton = event.target.closest('.code-theme-btn');
+        const themeButton = findClosest(event.target, '.code-theme-btn');
         if (themeButton) {
             try {
                 await toggleCodeTheme?.();
+                const currentTheme = getCodeTheme?.();
+                if (currentTheme) {
+                    container.setAttribute('data-code-theme', currentTheme);
+                }
                 applyThemeButtonText();
             } catch (_err) {
                 message?.error?.('切换代码主题失败');
@@ -80,7 +97,7 @@ export function bindMarkdownCodeCopy(container, message, options = {}) {
             return;
         }
 
-        const button = event.target.closest('.code-copy-btn');
+        const button = findClosest(event.target, '.code-copy-btn');
         if (!button) {
             return;
         }

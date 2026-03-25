@@ -78,14 +78,14 @@ watch(
             :class="{ active: isActive('/articles') }"
             to="/articles"
           >
-            个人文章
+            我的文章
           </router-link>
           <router-link
             v-if="authStore.isAuthenticated"
             :class="{ active: isActive('/drafts') }"
             to="/drafts"
           >
-            个人草稿
+            我的草稿
           </router-link>
           <router-link
             v-if="authStore.isAuthenticated && isAdmin"

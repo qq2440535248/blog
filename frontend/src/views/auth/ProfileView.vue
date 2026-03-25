@@ -84,6 +84,17 @@ const activeTabTitle = computed(
     tabItems.find((item) => item.key === activeTab.value)?.label || "个人中心",
 );
 
+const activeTabKicker = computed(() => {
+  const map = {
+    profile: "PROFILE SETTINGS",
+    security: "SECURITY SETTINGS",
+    likes: "MY LIKES",
+    collections: "MY COLLECTIONS",
+  };
+
+  return map[activeTab.value] || "USER CENTER";
+});
+
 function normalizeTab(tab) {
   return tabItems.some((item) => item.key === tab) ? tab : "profile";
 }
@@ -311,7 +322,7 @@ onMounted(async () => {
 
       <section class="profile-main">
         <header class="main-head">
-          <p class="kicker">PROFILE CENTER</p>
+          <p class="kicker">{{ activeTabKicker }}</p>
           <h2>{{ activeTabTitle }}</h2>
         </header>
 
@@ -533,7 +544,7 @@ onMounted(async () => {
   border-radius: var(--radius-sm);
   background: #ffffff;
   color: var(--color-text);
-  text-align: left;
+  text-align: center;
   width: 100%;
   box-sizing: border-box;
   padding: 10px 12px;

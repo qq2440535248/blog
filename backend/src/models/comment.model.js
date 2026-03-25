@@ -24,11 +24,6 @@ const Comment = sequelize.define(
             allowNull: true,
             field: 'parent_comment_id',
         },
-        replyToCommentId: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            allowNull: true,
-            field: 'reply_to_comment_id',
-        },
         content: {
             type: DataTypes.TEXT,
             allowNull: false,

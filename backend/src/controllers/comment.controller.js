@@ -33,14 +33,13 @@ function toNode(comment, likedSet) {
         id: comment.id,
         articleId: comment.articleId,
         parentCommentId: comment.parentCommentId,
-        replyToCommentId: comment.replyToCommentId,
         content: comment.content,
         likesCount: comment.likesCount,
         liked: likedSet.has(comment.id),
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt,
         user: comment.user,
-        replyToUser: comment.replyToComment?.user || null,
+        replyToUser: comment.parentComment?.user || null,
         replies: [],
     };
 }
@@ -95,7 +94,7 @@ exports.listByArticle = async (req, res, next) => {
                     },
                     {
                         model: Comment,
-                        as: 'replyToComment',
+                        as: 'parentComment',
                         attributes: ['id'],
                         include: [
                             {
@@ -167,7 +166,6 @@ exports.create = async (req, res, next) => {
         const { content, parentCommentId = null } = req.body;
         const cleanContent = escapeHtml(content.trim());
         let normalizedParentCommentId = null;
-        let replyToCommentId = null;
 
         if (parentCommentId) {
             const parent = await Comment.findByPk(Number(parentCommentId), {
@@ -179,14 +177,12 @@ exports.create = async (req, res, next) => {
             }
 
             normalizedParentCommentId = parent.parentCommentId || parent.id;
-            replyToCommentId = parent.id;
         }
 
         const created = await Comment.create({
             userId: req.auth.userId,
             articleId,
             parentCommentId: normalizedParentCommentId,
-            replyToCommentId,
             content: cleanContent,
         });
 
@@ -199,7 +195,7 @@ exports.create = async (req, res, next) => {
                 },
                 {
                     model: Comment,
-                    as: 'replyToComment',
+                    as: 'parentComment',
                     attributes: ['id'],
                     include: [
                         {

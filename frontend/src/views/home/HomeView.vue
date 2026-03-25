@@ -84,9 +84,9 @@ onMounted(fetchFeed);
   <main class="home-page page-block">
     <section class="container hero">
       <p class="hero-kicker">CONTENT STUDIO</p>
-      <h1>一个面向创作者的博客工作台</h1>
+      <h1>社区广场</h1>
       <p class="hero-subtitle">
-        集中管理文章、草稿、标签和分类，让创作流程更有秩序，发布更高效。
+        在这里发布观点、参与讨论、沉淀内容，让创作与交流同样高效。
       </p>
 
       <div v-if="!authStore.isAuthenticated" class="hero-actions">
@@ -229,6 +229,7 @@ onMounted(fetchFeed);
 
 .feed-head {
   display: flex;
+  padding: 0 0 0 5px;
   justify-content: space-between;
   align-items: end;
   gap: 12px;

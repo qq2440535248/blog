@@ -847,6 +847,7 @@ h1 {
 
 .collect-btn {
   width: 100%;
+  margin-left: 0;
   margin-top: 8px;
   border-color: #ffd89c;
   color: #b87911;

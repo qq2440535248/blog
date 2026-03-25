@@ -60,8 +60,6 @@ Comment.belongsTo(Article, { foreignKey: 'articleId', as: 'article' });
 
 Comment.hasMany(Comment, { foreignKey: 'parentCommentId', as: 'replies' });
 Comment.belongsTo(Comment, { foreignKey: 'parentCommentId', as: 'parentComment' });
-Comment.belongsTo(Comment, { foreignKey: 'replyToCommentId', as: 'replyToComment' });
-Comment.hasMany(Comment, { foreignKey: 'replyToCommentId', as: 'replyMentions' });
 
 User.hasMany(CommentLike, { foreignKey: 'userId', as: 'commentLikes' });
 CommentLike.belongsTo(User, { foreignKey: 'userId', as: 'user' });
