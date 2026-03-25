@@ -4,6 +4,9 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
+const categoryRoutes = require('./routes/category.routes');
+const tagRoutes = require('./routes/tag.routes');
+const articleRoutes = require('./routes/article.routes');
 const errorMiddleware = require('./middlewares/error.middleware');
 
 const app = express();
@@ -25,6 +28,9 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/tags', tagRoutes);
+app.use('/api/articles', articleRoutes);
 
 app.use(errorMiddleware);
 

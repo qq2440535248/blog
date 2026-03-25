@@ -24,6 +24,8 @@ async function logout() {
       <router-link v-if="!authStore.isAuthenticated" to="/register">去注册</router-link>
       <router-link v-if="authStore.isAuthenticated" to="/profile">个人中心</router-link>
       <router-link v-if="authStore.isAuthenticated" to="/change-password">修改密码</router-link>
+      <router-link v-if="authStore.isAuthenticated" to="/articles">文章管理</router-link>
+      <router-link v-if="authStore.isAuthenticated" to="/taxonomy">分类/标签</router-link>
       <button v-if="authStore.isAuthenticated" type="button" @click="logout">退出登录</button>
     </div>
   </main>
