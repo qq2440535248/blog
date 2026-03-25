@@ -34,7 +34,7 @@ async function fetchArticles() {
     setCache(
       cacheKey,
       { data: data.data, total: data.pagination.total },
-      2 * 60 * 1000
+      2 * 60 * 1000,
     );
   } catch (_err) {
     ElMessage.error("加载文章失败");
@@ -54,7 +54,9 @@ function goEditor(id) {
 async function removeArticle(id) {
   try {
     await request.delete(`/articles/${id}`);
-    removeCache(`articles:${filters.q}:${pagination.page}:${pagination.pageSize}`);
+    removeCache(
+      `articles:${filters.q}:${pagination.page}:${pagination.pageSize}`,
+    );
     ElMessage.success("删除成功");
     fetchArticles();
   } catch (_err) {
