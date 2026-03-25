@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import { ElMessageBox } from "element-plus";
 import request from "../../utils/request";
 import message from "../../utils/message";
 import { useAuthStore } from "../../stores/auth";
@@ -10,6 +11,9 @@ const router = useRouter();
 const loading = ref(false);
 const actionLoadingId = ref(0);
 const list = ref([]);
+const logsLoading = ref(false);
+const selectedArticleId = ref(0);
+const logs = ref([]);
 const pagination = reactive({
   page: 1,
   pageSize: 10,
@@ -68,6 +72,28 @@ async function fetchList() {
   }
 }
 
+function getAdminName(adminUser) {
+  return adminUser?.nickname || adminUser?.username || "管理员";
+}
+
+async function fetchLogs(articleId) {
+  if (!articleId) {
+    logs.value = [];
+    return;
+  }
+
+  try {
+    logsLoading.value = true;
+    const { data } = await request.get(`/articles/${articleId}/moderation-logs`);
+    logs.value = data?.data?.list || [];
+  } catch (_err) {
+    logs.value = [];
+    message.error("加载治理日志失败");
+  } finally {
+    logsLoading.value = false;
+  }
+}
+
 async function bootstrap() {
   try {
     if (!authStore.profile && authStore.isAuthenticated) {
@@ -100,7 +126,27 @@ function resetFilters() {
 
 async function changeStatus(item, targetStatus) {
   const actionText = targetStatus === "draft" ? "下架" : "恢复发布";
-  if (!window.confirm(`确认${actionText}这篇文章吗？`)) {
+  let reason = "";
+  try {
+    const result = await ElMessageBox.prompt(
+      `请填写${actionText}原因（可选，最多 200 字）`,
+      `${actionText}确认`,
+      {
+        confirmButtonText: "确认",
+        cancelButtonText: "取消",
+        inputType: "textarea",
+        inputValue: "",
+        inputValidator: (value) => {
+          if (String(value || "").trim().length > 200) {
+            return "原因不能超过 200 字";
+          }
+
+          return true;
+        },
+      },
+    );
+    reason = String(result?.value || "").trim();
+  } catch (_err) {
     return;
   }
 
@@ -110,14 +156,20 @@ async function changeStatus(item, targetStatus) {
       targetStatus === "draft"
         ? `/articles/${item.id}/takedown`
         : `/articles/${item.id}/restore`;
-    await request.patch(endpoint);
+    await request.patch(endpoint, { reason });
     message.success(`${actionText}成功`);
     await fetchList();
+    await fetchLogs(item.id);
   } catch (error) {
     message.error(error?.response?.data?.message || `${actionText}失败`);
   } finally {
     actionLoadingId.value = 0;
   }
+}
+
+async function openLogs(item) {
+  selectedArticleId.value = item.id;
+  await fetchLogs(item.id);
 }
 
 onMounted(bootstrap);
@@ -151,12 +203,20 @@ onMounted(bootstrap);
       </section>
 
       <section class="list-block" v-loading="loading">
-        <el-empty v-if="!loading && !list.length" description="暂无可治理文章" />
+        <el-empty
+          v-if="!loading && !list.length"
+          description="暂无可治理文章"
+        />
 
         <article v-for="item in list" :key="item.id" class="item-card">
           <div class="item-head">
-            <h3 @click="router.push(`/articles/${item.id}`)">{{ item.title || "未命名文章" }}</h3>
-            <el-tag :type="item.status === 'published' ? 'success' : 'warning'" effect="light">
+            <h3 @click="router.push(`/articles/${item.id}`)">
+              {{ item.title || "未命名文章" }}
+            </h3>
+            <el-tag
+              :type="item.status === 'published' ? 'success' : 'warning'"
+              effect="light"
+            >
               {{ item.status === "published" ? "已发布" : "草稿" }}
             </el-tag>
           </div>
@@ -164,9 +224,12 @@ onMounted(bootstrap);
           <div class="item-meta">
             <span>作者：{{ getAuthor(item) }}</span>
             <span>分类：{{ item.category?.name || "未分类" }}</span>
-            <span>更新：{{ formatDate(item.updatedAt || item.createdAt) }}</span>
+            <span
+              >更新：{{ formatDate(item.updatedAt || item.createdAt) }}</span
+            >
           </div>
           <div class="item-actions">
+            <el-button plain @click="openLogs(item)">查看日志</el-button>
             <el-button
               v-if="item.status === 'published'"
               type="warning"
@@ -186,6 +249,24 @@ onMounted(bootstrap);
               恢复发布
             </el-button>
           </div>
+        </article>
+      </section>
+
+      <section class="logs-block" v-loading="logsLoading">
+        <h3>治理日志</h3>
+        <p v-if="!selectedArticleId" class="logs-empty">请选择一篇文章查看最近 20 条日志</p>
+        <p v-else class="logs-tip">当前文章 ID：{{ selectedArticleId }}</p>
+        <el-empty
+          v-if="selectedArticleId && !logsLoading && !logs.length"
+          description="暂无治理日志"
+        />
+        <article v-for="item in logs" :key="item.id" class="log-item">
+          <div class="log-head">
+            <strong>{{ item.action === "takedown" ? "下架" : "恢复发布" }}</strong>
+            <span>{{ formatDate(item.createdAt) }}</span>
+          </div>
+          <p>操作人：{{ getAdminName(item.adminUser) }}</p>
+          <p>原因：{{ item.reason || "未填写" }}</p>
         </article>
       </section>
 
@@ -286,6 +367,39 @@ h1 {
 
 .item-actions {
   margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.logs-block {
+  margin-top: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  padding: 12px;
+}
+
+.logs-block h3 {
+  margin: 0;
+}
+
+.logs-empty,
+.logs-tip {
+  margin: 10px 0;
+  color: var(--color-text-secondary);
+}
+
+.log-item {
+  border-top: 1px dashed #dbe5f4;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.log-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .pager-wrap {

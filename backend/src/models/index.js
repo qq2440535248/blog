@@ -10,6 +10,7 @@ const Draft = require('./draft.model');
 const Comment = require('./comment.model');
 const CommentLike = require('./comment-like.model');
 const Collection = require('./collection.model');
+const ModerationLog = require('./moderation-log.model');
 
 User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens' });
 RefreshToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -72,6 +73,12 @@ Collection.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Article.hasMany(Collection, { foreignKey: 'articleId', as: 'collections' });
 Collection.belongsTo(Article, { foreignKey: 'articleId', as: 'article' });
 
+Article.hasMany(ModerationLog, { foreignKey: 'articleId', as: 'moderationLogs' });
+ModerationLog.belongsTo(Article, { foreignKey: 'articleId', as: 'article' });
+
+User.hasMany(ModerationLog, { foreignKey: 'adminUserId', as: 'moderationActions' });
+ModerationLog.belongsTo(User, { foreignKey: 'adminUserId', as: 'adminUser' });
+
 async function initDatabase() {
     await sequelize.authenticate();
     await sequelize.sync();
@@ -90,5 +97,6 @@ module.exports = {
     Comment,
     CommentLike,
     Collection,
+    ModerationLog,
     initDatabase,
 };

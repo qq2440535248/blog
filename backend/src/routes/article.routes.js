@@ -10,6 +10,7 @@ const router = express.Router();
 
 router.get('/public', articleController.listPublic);
 router.get('/moderation', authMiddleware, adminMiddleware, articleController.listModeration);
+router.get('/:id/moderation-logs', authMiddleware, adminMiddleware, validate(validateIdParam), articleController.listModerationLogs);
 router.get('/:id', optionalAuthMiddleware, validate(validateIdParam), articleController.detail);
 router.get('/', authMiddleware, articleController.list);
 router.patch('/:id/takedown', authMiddleware, adminMiddleware, validate(validateIdParam), articleController.adminTakedown);

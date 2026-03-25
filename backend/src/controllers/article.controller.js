@@ -1,7 +1,25 @@
 const { Op } = require('sequelize');
-const { Article, Category, Tag, User } = require('../models');
+const { Article, Category, Tag, User, ModerationLog } = require('../models');
 const { success, fail, ERROR_CODES } = require('../utils/http');
 const { isAdminUser } = require('../utils/role');
+
+function normalizeModerationReason(rawReason) {
+    if (rawReason === undefined || rawReason === null) {
+        return '';
+    }
+
+    const reason = String(rawReason).trim();
+    return reason.slice(0, 200);
+}
+
+async function createModerationLog({ articleId, adminUserId, action, reason }) {
+    await ModerationLog.create({
+        articleId,
+        adminUserId,
+        action,
+        reason: reason || null,
+    });
+}
 
 function parsePagination(query) {
     const page = Math.max(Number(query.page || 1), 1);
@@ -279,8 +297,15 @@ exports.adminTakedown = async (req, res, next) => {
             return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
+        const reason = normalizeModerationReason(req.body?.reason);
         article.status = 'draft';
         await article.save();
+        await createModerationLog({
+            articleId: article.id,
+            adminUserId: req.auth.userId,
+            action: 'takedown',
+            reason,
+        });
 
         return success(res, article, 'Article taken down');
     } catch (err) {
@@ -295,10 +320,39 @@ exports.adminRestore = async (req, res, next) => {
             return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
+        const reason = normalizeModerationReason(req.body?.reason);
         article.status = 'published';
         await article.save();
+        await createModerationLog({
+            articleId: article.id,
+            adminUserId: req.auth.userId,
+            action: 'restore',
+            reason,
+        });
 
         return success(res, article, 'Article restored');
+    } catch (err) {
+        return next(err);
+    }
+};
+
+exports.listModerationLogs = async (req, res, next) => {
+    try {
+        const articleId = Number(req.params.id);
+        const list = await ModerationLog.findAll({
+            where: { articleId },
+            include: [
+                {
+                    model: User,
+                    as: 'adminUser',
+                    attributes: ['id', 'username', 'nickname', 'avatarUrl'],
+                },
+            ],
+            order: [['id', 'DESC']],
+            limit: 20,
+        });
+
+        return success(res, { list });
     } catch (err) {
         return next(err);
     }
