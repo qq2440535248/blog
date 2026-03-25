@@ -7,6 +7,8 @@ const Article = require('./article.model');
 const ArticleTag = require('./article-tag.model');
 const Like = require('./like.model');
 const Draft = require('./draft.model');
+const Comment = require('./comment.model');
+const CommentLike = require('./comment-like.model');
 
 User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens' });
 RefreshToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -48,6 +50,21 @@ Draft.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Category.hasMany(Draft, { foreignKey: 'categoryId', as: 'drafts' });
 Draft.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
 
+User.hasMany(Comment, { foreignKey: 'userId', as: 'comments' });
+Comment.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+Article.hasMany(Comment, { foreignKey: 'articleId', as: 'comments' });
+Comment.belongsTo(Article, { foreignKey: 'articleId', as: 'article' });
+
+Comment.hasMany(Comment, { foreignKey: 'parentCommentId', as: 'replies' });
+Comment.belongsTo(Comment, { foreignKey: 'parentCommentId', as: 'parentComment' });
+
+User.hasMany(CommentLike, { foreignKey: 'userId', as: 'commentLikes' });
+CommentLike.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+Comment.hasMany(CommentLike, { foreignKey: 'commentId', as: 'likes' });
+CommentLike.belongsTo(Comment, { foreignKey: 'commentId', as: 'comment' });
+
 async function initDatabase() {
     await sequelize.authenticate();
     await sequelize.sync();
@@ -63,5 +80,7 @@ module.exports = {
     ArticleTag,
     Like,
     Draft,
+    Comment,
+    CommentLike,
     initDatabase,
 };

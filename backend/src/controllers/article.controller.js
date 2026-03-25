@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Article, Category, Tag } = require('../models');
+const { Article, Category, Tag, User } = require('../models');
 const { success, fail, ERROR_CODES } = require('../utils/http');
 
 function parsePagination(query) {
@@ -31,6 +31,59 @@ exports.list = async (req, res, next) => {
         const include = [
             { model: Category, as: 'category', attributes: ['id', 'name'] },
             { model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] },
+            { model: User, as: 'user', attributes: ['id', 'username', 'nickname', 'avatarUrl'] },
+        ];
+
+        if (tag) {
+            include[1].where = { name: { [Op.like]: `%${tag}%` } };
+        }
+
+        const { rows, count } = await Article.findAndCountAll({
+            where,
+            include,
+            distinct: true,
+            order: [['id', 'DESC']],
+            offset,
+            limit: pageSize,
+        });
+
+        return success(res, {
+            list: rows,
+            pagination: {
+                page,
+                pageSize,
+                total: count,
+            },
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+exports.listPublic = async (req, res, next) => {
+    try {
+        const { page, pageSize, offset } = parsePagination(req.query);
+        const { q, categoryId, tag } = req.query;
+
+        const where = {
+            status: 'published',
+        };
+
+        if (q) {
+            where[Op.or] = [
+                { title: { [Op.like]: `%${q}%` } },
+                { content: { [Op.like]: `%${q}%` } },
+            ];
+        }
+
+        if (categoryId) {
+            where.categoryId = Number(categoryId);
+        }
+
+        const include = [
+            { model: Category, as: 'category', attributes: ['id', 'name'] },
+            { model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] },
+            { model: User, as: 'user', attributes: ['id', 'username', 'nickname', 'avatarUrl'] },
         ];
 
         if (tag) {
@@ -61,15 +114,22 @@ exports.list = async (req, res, next) => {
 
 exports.detail = async (req, res, next) => {
     try {
+        const id = Number(req.params.id);
         const article = await Article.findOne({
-            where: { id: req.params.id, userId: req.auth.userId },
+            where: { id },
             include: [
                 { model: Category, as: 'category', attributes: ['id', 'name'] },
                 { model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] },
+                { model: User, as: 'user', attributes: ['id', 'username', 'nickname', 'avatarUrl'] },
             ],
         });
 
         if (!article) {
+            return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
+        }
+
+        const isOwner = Boolean(req.auth?.userId && Number(req.auth.userId) === Number(article.userId));
+        if (article.status !== 'published' && !isOwner) {
             return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
 

@@ -45,6 +45,10 @@ exports.unlike = async (req, res, next) => {
 
 exports.isLiked = async (req, res, next) => {
     try {
+        if (!req.auth?.userId) {
+            return success(res, { liked: false });
+        }
+
         const articleId = Number(req.params.id);
         const like = await Like.findOne({ where: { userId: req.auth.userId, articleId } });
         return success(res, { liked: Boolean(like) });

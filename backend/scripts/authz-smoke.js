@@ -19,7 +19,8 @@ async function run() {
         await ensureUnauthorized(baseUrl, '/users/me');
         await ensureUnauthorized(baseUrl, '/articles');
         await ensureUnauthorized(baseUrl, '/drafts');
-        await ensureUnauthorized(baseUrl, '/articles/1/is-liked');
+        const likedResp = await fetch(`${baseUrl}/articles/1/is-liked`);
+        assert.ok([200, 404].includes(likedResp.status), '/articles/:id/is-liked should be readable for guest');
 
         const accessSecret = process.env.JWT_ACCESS_SECRET || 'change_me_access_secret';
         const badTypeToken = jwt.sign({ sub: 1, type: 'refresh' }, accessSecret, { expiresIn: '15m' });

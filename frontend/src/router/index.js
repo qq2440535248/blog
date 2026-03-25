@@ -64,7 +64,6 @@ const routes = [
         path: '/articles/:id',
         name: 'article-detail',
         component: ArticleDetailView,
-        meta: { requiresAuth: true },
     },
     {
         path: '/drafts',
