@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../../utils/request";
+import { getCache, removeCache, setCache } from "../../utils/cache";
 
 const router = useRouter();
 const loading = ref(false);
@@ -11,6 +12,14 @@ const pagination = reactive({ page: 1, pageSize: 10, total: 0 });
 const filters = reactive({ q: "" });
 
 async function fetchArticles() {
+  const cacheKey = `articles:${filters.q}:${pagination.page}:${pagination.pageSize}`;
+  const cached = getCache(cacheKey);
+  if (cached) {
+    articles.value = cached.data;
+    pagination.total = cached.total;
+    return;
+  }
+
   try {
     loading.value = true;
     const { data } = await request.get("/articles", {
@@ -22,6 +31,11 @@ async function fetchArticles() {
     });
     articles.value = data.data;
     pagination.total = data.pagination.total;
+    setCache(
+      cacheKey,
+      { data: data.data, total: data.pagination.total },
+      2 * 60 * 1000
+    );
   } catch (_err) {
     ElMessage.error("加载文章失败");
   } finally {
@@ -40,6 +54,7 @@ function goEditor(id) {
 async function removeArticle(id) {
   try {
     await request.delete(`/articles/${id}`);
+    removeCache(`articles:${filters.q}:${pagination.page}:${pagination.pageSize}`);
     ElMessage.success("删除成功");
     fetchArticles();
   } catch (_err) {

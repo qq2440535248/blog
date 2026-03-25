@@ -22,12 +22,18 @@ const apiLimiter = rateLimit({
     max: 120,
 });
 
+const authLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+});
+
 app.use('/api', apiLimiter);
 
 app.get('/api/health', (_req, res) => {
     res.json({ ok: true, service: 'person-blog-backend' });
 });
 
+app.use('/api/auth', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);

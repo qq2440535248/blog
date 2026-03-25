@@ -1,15 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import HomeView from '../views/home/HomeView.vue';
-import LoginView from '../views/auth/LoginView.vue';
-import RegisterView from '../views/auth/RegisterView.vue';
-import ProfileView from '../views/auth/ProfileView.vue';
-import ChangePasswordView from '../views/auth/ChangePasswordView.vue';
-import ArticleListView from '../views/articles/ArticleListView.vue';
-import ArticleDetailView from '../views/articles/ArticleDetailView.vue';
-import ArticleEditorView from '../views/articles/ArticleEditorView.vue';
-import DraftListView from '../views/articles/DraftListView.vue';
-import TaxonomyManageView from '../views/taxonomy/TaxonomyManageView.vue';
+
+const HomeView = () => import('../views/home/HomeView.vue');
+const LoginView = () => import('../views/auth/LoginView.vue');
+const RegisterView = () => import('../views/auth/RegisterView.vue');
+const ProfileView = () => import('../views/auth/ProfileView.vue');
+const ChangePasswordView = () => import('../views/auth/ChangePasswordView.vue');
+const ArticleListView = () => import('../views/articles/ArticleListView.vue');
+const ArticleDetailView = () => import('../views/articles/ArticleDetailView.vue');
+const ArticleEditorView = () => import('../views/articles/ArticleEditorView.vue');
+const DraftListView = () => import('../views/articles/DraftListView.vue');
+const TaxonomyManageView = () => import('../views/taxonomy/TaxonomyManageView.vue');
 
 const routes = [
     {

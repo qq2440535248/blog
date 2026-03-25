@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import request from "../../utils/request";
+import { getCache, removeCache, setCache } from "../../utils/cache";
 
 const categories = ref([]);
 const tags = ref([]);
@@ -9,6 +10,14 @@ const loading = ref(false);
 const form = reactive({ category: "", tag: "" });
 
 async function fetchAll() {
+  const cachedCategories = getCache("categories");
+  const cachedTags = getCache("tags");
+  if (cachedCategories && cachedTags) {
+    categories.value = cachedCategories;
+    tags.value = cachedTags;
+    return;
+  }
+
   try {
     loading.value = true;
     const [categoryRes, tagRes] = await Promise.all([
@@ -17,6 +26,8 @@ async function fetchAll() {
     ]);
     categories.value = categoryRes.data.data;
     tags.value = tagRes.data.data;
+    setCache("categories", categories.value, 5 * 60 * 1000);
+    setCache("tags", tags.value, 5 * 60 * 1000);
   } catch (_err) {
     ElMessage.error("加载分类标签失败");
   } finally {
@@ -27,6 +38,7 @@ async function fetchAll() {
 async function createCategory() {
   if (!form.category) return;
   await request.post("/categories", { name: form.category });
+  removeCache("categories");
   form.category = "";
   fetchAll();
 }
@@ -34,6 +46,7 @@ async function createCategory() {
 async function createTag() {
   if (!form.tag) return;
   await request.post("/tags", { name: form.tag });
+  removeCache("tags");
   form.tag = "";
   fetchAll();
 }
