@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { Article, Category, Tag, User } = require('../models');
 const { success, fail, ERROR_CODES } = require('../utils/http');
+const { isAdminUser } = require('../utils/role');
 
 function parsePagination(query) {
     const page = Math.max(Number(query.page || 1), 1);
@@ -207,15 +208,38 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
     try {
-        const count = await Article.destroy({
-            where: { id: req.params.id, userId: req.auth.userId },
-        });
-
-        if (!count) {
+        const article = await Article.findByPk(req.params.id);
+        if (!article) {
             return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
 
+        const isOwner = Number(article.userId) === Number(req.auth.userId);
+        if (!isOwner) {
+            const currentUser = await User.findByPk(req.auth.userId);
+            if (!currentUser || !isAdminUser(currentUser)) {
+                return fail(res, 'Forbidden', 403, ERROR_CODES.FORBIDDEN);
+            }
+        }
+
+        await article.destroy();
+
         return success(res, null, 'Article deleted');
+    } catch (err) {
+        return next(err);
+    }
+};
+
+exports.adminTakedown = async (req, res, next) => {
+    try {
+        const article = await Article.findByPk(req.params.id);
+        if (!article) {
+            return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
+        }
+
+        article.status = 'draft';
+        await article.save();
+
+        return success(res, article, 'Article taken down');
     } catch (err) {
         return next(err);
     }

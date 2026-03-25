@@ -53,6 +53,10 @@ const canEdit = computed(() => {
   return Boolean(profileId && authorId && profileId === authorId);
 });
 
+const canModerate = computed(() => {
+  return authStore.profile?.role === "admin";
+});
+
 const updatedAtText = computed(() => {
   const value = article.value?.updatedAt || article.value?.createdAt;
   if (!value) {
@@ -286,6 +290,29 @@ async function toggleCollection() {
   }
 }
 
+async function adminTakedown() {
+  if (!ensureLogin("下架文章")) {
+    return;
+  }
+
+  if (!canModerate.value) {
+    message.error("仅管理员可以下架文章");
+    return;
+  }
+
+  if (!window.confirm("确认将这篇文章下架为草稿状态吗？")) {
+    return;
+  }
+
+  try {
+    await request.patch(`/articles/${route.params.id}/takedown`);
+    message.success("下架成功");
+    await fetchDetail();
+  } catch (error) {
+    message.error(error?.response?.data?.message || "下架失败");
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     fetchDetail(),
@@ -498,6 +525,14 @@ watch(
             @click="router.push(`/articles/${route.params.id}/edit`)"
           >
             编辑文章
+          </el-button>
+          <el-button
+            v-if="canModerate && article?.status === 'published'"
+            type="warning"
+            plain
+            @click="adminTakedown"
+          >
+            下架文章
           </el-button>
         </div>
         <el-button

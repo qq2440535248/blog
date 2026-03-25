@@ -2,6 +2,7 @@ const { User, RefreshToken } = require('../models');
 const { hashPassword, comparePassword } = require('../utils/password');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const { success, fail, ERROR_CODES } = require('../utils/http');
+const { getUserRole } = require('../utils/role');
 
 function toUserDto(user) {
     return {
@@ -11,6 +12,7 @@ function toUserDto(user) {
         nickname: user.nickname,
         avatarUrl: user.avatarUrl,
         bio: user.bio,
+        role: getUserRole(user),
     };
 }
 

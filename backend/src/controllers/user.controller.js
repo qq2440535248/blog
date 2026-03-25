@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const { User, Like, Collection, Article, Category, Tag } = require('../models');
 const { comparePassword, hashPassword } = require('../utils/password');
 const { success, fail, ERROR_CODES } = require('../utils/http');
+const { getUserRole } = require('../utils/role');
 
 function toUserDto(user) {
     return {
@@ -11,6 +12,7 @@ function toUserDto(user) {
         nickname: user.nickname,
         avatarUrl: user.avatarUrl,
         bio: user.bio,
+        role: getUserRole(user),
     };
 }
 
