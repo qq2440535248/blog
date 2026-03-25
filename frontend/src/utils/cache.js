@@ -30,3 +30,19 @@ export function getCache(key) {
 export function removeCache(key) {
     localStorage.removeItem(`${PREFIX}${key}`);
 }
+
+export function removeCacheByPrefix(keyPrefix) {
+    const prefix = `${PREFIX}${keyPrefix}`;
+    const keys = [];
+
+    for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (key && key.startsWith(prefix)) {
+            keys.push(key);
+        }
+    }
+
+    keys.forEach((key) => {
+        localStorage.removeItem(key);
+    });
+}

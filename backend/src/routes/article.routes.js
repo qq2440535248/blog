@@ -9,9 +9,11 @@ const { validateArticleCreate, validateArticleUpdate, validateIdParam } = requir
 const router = express.Router();
 
 router.get('/public', articleController.listPublic);
+router.get('/moderation', authMiddleware, adminMiddleware, articleController.listModeration);
 router.get('/:id', optionalAuthMiddleware, validate(validateIdParam), articleController.detail);
 router.get('/', authMiddleware, articleController.list);
 router.patch('/:id/takedown', authMiddleware, adminMiddleware, validate(validateIdParam), articleController.adminTakedown);
+router.patch('/:id/restore', authMiddleware, adminMiddleware, validate(validateIdParam), articleController.adminRestore);
 router.post('/', authMiddleware, validate(validateArticleCreate), articleController.create);
 router.put('/:id', authMiddleware, validate(validateIdParam), validate(validateArticleUpdate), articleController.update);
 router.delete('/:id', authMiddleware, validate(validateIdParam), articleController.remove);

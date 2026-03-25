@@ -46,9 +46,7 @@ async function submitLogin() {
       typeof route.query.redirect === "string" ? route.query.redirect : "/";
     router.push(redirect);
   } catch (error) {
-    message.error(
-      error?.userMessage || getApiErrorMessage(error, "登录失败"),
-    );
+    message.error(error?.userMessage || getApiErrorMessage(error, "登录失败"));
   } finally {
     loading.value = false;
   }

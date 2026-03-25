@@ -10,6 +10,7 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import request from "../../utils/request";
 import { getApiErrorMessage } from "../../utils/request";
+import { removeCacheByPrefix } from "../../utils/cache";
 import { bindMarkdownCodeCopy, renderMarkdown } from "../../utils/markdown";
 import message from "../../utils/message";
 import { useCodeTheme } from "../../composables/useCodeTheme";
@@ -25,10 +26,30 @@ const draftId = ref(null);
 const saveStatus = ref("自动保存已开启");
 const editorRef = ref();
 const markdownContainerRef = ref();
+const hotPicking = ref(false);
 let autoSaveTimer = null;
 const previewHtml = ref("");
 const { codeTheme, toggleCodeTheme } = useCodeTheme();
 let unbindCodeCopy = null;
+
+const hotCategories = [
+  "前端",
+  "后端",
+  "数据库",
+  "架构设计",
+  "工程实践",
+  "AI 应用",
+];
+const hotTags = [
+  "Vue3",
+  "Node.js",
+  "TypeScript",
+  "性能优化",
+  "系统设计",
+  "代码规范",
+  "MySQL",
+  "Docker",
+];
 
 const wordCount = computed(() => {
   const text = (form.content || "").replace(/\s+/g, "").trim();
@@ -90,6 +111,86 @@ async function fetchOptions() {
   ]);
   categories.value = categoryRes.data.data;
   tags.value = tagRes.data.data;
+}
+
+function findByName(list, name) {
+  const normalized = String(name || "")
+    .trim()
+    .toLowerCase();
+  return list.find(
+    (item) =>
+      String(item.name || "")
+        .trim()
+        .toLowerCase() === normalized,
+  );
+}
+
+async function ensureCategory(name) {
+  const existed = findByName(categories.value, name);
+  if (existed) {
+    return existed;
+  }
+
+  await request.post("/categories", { name });
+  await fetchOptions();
+  return findByName(categories.value, name);
+}
+
+async function ensureTag(name) {
+  const existed = findByName(tags.value, name);
+  if (existed) {
+    return existed;
+  }
+
+  await request.post("/tags", { name });
+  await fetchOptions();
+  return findByName(tags.value, name);
+}
+
+async function pickHotCategory(name) {
+  if (hotPicking.value) {
+    return;
+  }
+
+  try {
+    hotPicking.value = true;
+    const category = await ensureCategory(name);
+    if (!category) {
+      throw new Error("分类创建失败");
+    }
+    form.categoryId = category.id;
+    message.success(`已选择 HOT 分类：${category.name}`);
+  } catch (error) {
+    message.error(getApiErrorMessage(error, "选择热门分类失败"));
+  } finally {
+    hotPicking.value = false;
+  }
+}
+
+async function pickHotTag(name) {
+  if (hotPicking.value) {
+    return;
+  }
+
+  try {
+    hotPicking.value = true;
+    const tag = await ensureTag(name);
+    if (!tag) {
+      throw new Error("标签创建失败");
+    }
+
+    if (!form.tagIds.includes(tag.id)) {
+      form.tagIds = [...form.tagIds, tag.id];
+      message.success(`已添加 HOT 标签：${tag.name}`);
+      return;
+    }
+
+    message.info(`HOT 标签已存在：${tag.name}`);
+  } catch (error) {
+    message.error(getApiErrorMessage(error, "选择热门标签失败"));
+  } finally {
+    hotPicking.value = false;
+  }
 }
 
 async function fetchDetail() {
@@ -175,6 +276,7 @@ async function saveArticle(saveAsDraft = false) {
       }
     }
 
+    removeCacheByPrefix("articles:");
     message.success("文章已保存");
     saveStatus.value = "文章已发布";
     router.push("/articles");
@@ -199,7 +301,9 @@ onMounted(async () => {
       }
     }, 20000);
 
-    unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message);
+    unbindCodeCopy = bindMarkdownCodeCopy(markdownContainerRef.value, message, {
+      toggleCodeTheme,
+    });
   } catch (_err) {
     message.error(getApiErrorMessage(_err, "初始化编辑器失败"));
   }
@@ -232,7 +336,9 @@ watch(
     if (unbindCodeCopy) {
       unbindCodeCopy();
     }
-    unbindCodeCopy = bindMarkdownCodeCopy(el, message);
+    unbindCodeCopy = bindMarkdownCodeCopy(el, message, {
+      toggleCodeTheme,
+    });
   },
 );
 </script>
@@ -251,9 +357,6 @@ watch(
           <el-tag type="warning" effect="plain"
             >阅读 {{ readingMinutes }} 分钟</el-tag
           >
-          <el-button size="small" plain @click="toggleCodeTheme">
-            代码主题：{{ codeTheme === "dark" ? "深色" : "浅色" }}
-          </el-button>
         </div>
       </header>
 
@@ -279,6 +382,22 @@ watch(
                     :value="item.id"
                   />
                 </el-select>
+                <div class="hot-box">
+                  <p class="hot-title">
+                    <span class="hot-icon">HOT</span> 热门分类
+                  </p>
+                  <div class="hot-list">
+                    <el-tag
+                      v-for="name in hotCategories"
+                      :key="`c-${name}`"
+                      class="hot-tag"
+                      effect="light"
+                      @click="pickHotCategory(name)"
+                    >
+                      {{ name }}
+                    </el-tag>
+                  </div>
+                </div>
               </el-form-item>
               <el-form-item label="标签">
                 <el-select
@@ -293,6 +412,22 @@ watch(
                     :value="item.id"
                   />
                 </el-select>
+                <div class="hot-box">
+                  <p class="hot-title">
+                    <span class="hot-icon">HOT</span> 热门标签
+                  </p>
+                  <div class="hot-list">
+                    <el-tag
+                      v-for="name in hotTags"
+                      :key="`t-${name}`"
+                      class="hot-tag"
+                      effect="plain"
+                      @click="pickHotTag(name)"
+                    >
+                      {{ name }}
+                    </el-tag>
+                  </div>
+                </div>
               </el-form-item>
             </div>
             <el-form-item label="正文">
@@ -403,6 +538,51 @@ h2 {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.hot-box {
+  margin-top: 10px;
+  border: 1px solid #ffe5c2;
+  background: #fff8ee;
+  border-radius: var(--radius-sm);
+  padding: 10px;
+}
+
+.hot-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #a86514;
+  letter-spacing: 0.08em;
+}
+
+.hot-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ff9d2f;
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.hot-list {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hot-tag {
+  cursor: pointer;
+  user-select: none;
 }
 
 .actions {

@@ -37,7 +37,7 @@ async function getMarkdownInstance() {
                     }
                 }
 
-                return `<div class=\"code-block-wrap\"><div class=\"code-block-toolbar\"><span class=\"code-lang\">${languageLabel}</span><button type=\"button\" class=\"code-copy-btn\">复制</button></div><pre data-lang=\"${safeLang}\"><code class=\"hljs language-${safeLang}\">${highlighted}</code></pre></div>`;
+                return `<div class=\"code-block-wrap\"><div class=\"code-block-toolbar\"><span class=\"code-lang\">${languageLabel}</span><div class=\"code-actions\"><button type=\"button\" class=\"code-theme-btn\">主题</button><button type=\"button\" class=\"code-copy-btn\">复制</button></div></div><pre data-lang=\"${safeLang}\"><code class=\"hljs language-${safeLang}\">${highlighted}</code></pre></div>`;
             },
         });
 
@@ -52,12 +52,24 @@ export async function renderMarkdown(content) {
     return markdown.render(content || '');
 }
 
-export function bindMarkdownCodeCopy(container, message) {
+export function bindMarkdownCodeCopy(container, message, options = {}) {
     if (!container) {
-        return () => {};
+        return () => { };
     }
 
+    const toggleCodeTheme = options?.toggleCodeTheme;
+
     const handleClick = async (event) => {
+        const themeButton = event.target.closest('.code-theme-btn');
+        if (themeButton) {
+            try {
+                await toggleCodeTheme?.();
+            } catch (_err) {
+                message?.error?.('切换代码主题失败');
+            }
+            return;
+        }
+
         const button = event.target.closest('.code-copy-btn');
         if (!button) {
             return;

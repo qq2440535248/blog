@@ -113,6 +113,49 @@ exports.listPublic = async (req, res, next) => {
     }
 };
 
+exports.listModeration = async (req, res, next) => {
+    try {
+        const { page, pageSize, offset } = parsePagination(req.query);
+        const { q, status } = req.query;
+
+        const where = {};
+        if (status === 'published' || status === 'draft') {
+            where.status = status;
+        }
+
+        if (q) {
+            where[Op.or] = [
+                { title: { [Op.like]: `%${q}%` } },
+                { content: { [Op.like]: `%${q}%` } },
+            ];
+        }
+
+        const { rows, count } = await Article.findAndCountAll({
+            where,
+            include: [
+                { model: Category, as: 'category', attributes: ['id', 'name'] },
+                { model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id', 'name'] },
+                { model: User, as: 'user', attributes: ['id', 'username', 'nickname', 'avatarUrl'] },
+            ],
+            distinct: true,
+            order: [['id', 'DESC']],
+            offset,
+            limit: pageSize,
+        });
+
+        return success(res, {
+            list: rows,
+            pagination: {
+                page,
+                pageSize,
+                total: count,
+            },
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
 exports.detail = async (req, res, next) => {
     try {
         const id = Number(req.params.id);
@@ -240,6 +283,22 @@ exports.adminTakedown = async (req, res, next) => {
         await article.save();
 
         return success(res, article, 'Article taken down');
+    } catch (err) {
+        return next(err);
+    }
+};
+
+exports.adminRestore = async (req, res, next) => {
+    try {
+        const article = await Article.findByPk(req.params.id);
+        if (!article) {
+            return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
+        }
+
+        article.status = 'published';
+        await article.save();
+
+        return success(res, article, 'Article restored');
     } catch (err) {
         return next(err);
     }

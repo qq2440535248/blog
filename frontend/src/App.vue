@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 import message from "./utils/message";
@@ -8,6 +8,7 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const mobileMenuOpen = ref(false);
+const isAdmin = computed(() => authStore.profile?.role === "admin");
 
 const guestRoutes = ["/login", "/register"];
 
@@ -28,6 +29,23 @@ async function logout() {
     message.error("退出失败，请稍后重试");
   }
 }
+
+onMounted(async () => {
+  if (!authStore.isAuthenticated) {
+    return;
+  }
+
+  if (authStore.profile) {
+    return;
+  }
+
+  try {
+    await authStore.fetchMe();
+  } catch (_err) {
+    authStore.clearAuth();
+    router.push("/login");
+  }
+});
 
 watch(
   () => route.fullPath,
@@ -75,6 +93,13 @@ watch(
             to="/taxonomy"
           >
             分类标签
+          </router-link>
+          <router-link
+            v-if="authStore.isAuthenticated && isAdmin"
+            :class="{ active: isActive('/moderation') }"
+            to="/moderation"
+          >
+            治理台
           </router-link>
           <router-link
             v-if="authStore.isAuthenticated"

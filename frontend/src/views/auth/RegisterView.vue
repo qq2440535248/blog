@@ -68,9 +68,7 @@ async function submitRegister() {
     message.success("注册成功");
     router.push("/");
   } catch (error) {
-    message.error(
-      error?.userMessage || getApiErrorMessage(error, "注册失败"),
-    );
+    message.error(error?.userMessage || getApiErrorMessage(error, "注册失败"));
   } finally {
     loading.value = false;
   }

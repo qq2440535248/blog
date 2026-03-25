@@ -11,6 +11,7 @@ const ArticleDetailView = () => import('../views/articles/ArticleDetailView.vue'
 const ArticleEditorView = () => import('../views/articles/ArticleEditorView.vue');
 const DraftListView = () => import('../views/articles/DraftListView.vue');
 const TaxonomyManageView = () => import('../views/taxonomy/TaxonomyManageView.vue');
+const ModerationView = () => import('../views/admin/ModerationView.vue');
 
 const routes = [
     {
@@ -81,6 +82,12 @@ const routes = [
         path: '/taxonomy',
         name: 'taxonomy',
         component: TaxonomyManageView,
+        meta: { requiresAuth: true },
+    },
+    {
+        path: '/moderation',
+        name: 'moderation',
+        component: ModerationView,
         meta: { requiresAuth: true },
     },
 ];

@@ -32,11 +32,13 @@ export const useAuthStore = defineStore('auth', () => {
     async function login(payload) {
         const { data } = await request.post('/auth/login', payload);
         setTokens(data.data);
+        profile.value = data?.data?.user || null;
     }
 
     async function register(payload) {
         const { data } = await request.post('/auth/register', payload);
         setTokens(data.data);
+        profile.value = data?.data?.user || null;
     }
 
     async function fetchMe() {

@@ -11,6 +11,10 @@ const articles = ref([]);
 const pagination = reactive({ page: 1, pageSize: 10, total: 0 });
 const filters = reactive({ q: "" });
 const hasArticles = computed(() => articles.value.length > 0);
+const statusTextMap = {
+  published: "已发布",
+  draft: "草稿",
+};
 
 async function fetchArticles() {
   const cacheKey = `articles:${filters.q}:${pagination.page}:${pagination.pageSize}`;
@@ -42,6 +46,17 @@ async function fetchArticles() {
   } finally {
     loading.value = false;
   }
+}
+
+function doSearch() {
+  pagination.page = 1;
+  fetchArticles();
+}
+
+function clearSearch() {
+  filters.q = "";
+  pagination.page = 1;
+  fetchArticles();
 }
 
 function goEditor(id) {
@@ -85,9 +100,11 @@ onMounted(fetchArticles);
           <el-input
             v-model="filters.q"
             placeholder="搜索标题或内容"
-            @keyup.enter="fetchArticles"
+            clearable
+            @clear="clearSearch"
+            @keyup.enter="doSearch"
           />
-          <el-button type="primary" @click="fetchArticles">搜索</el-button>
+          <el-button type="primary" @click="doSearch">搜索</el-button>
         </div>
       </el-card>
 
@@ -108,7 +125,7 @@ onMounted(fetchArticles);
                 <el-tag
                   :type="scope.row.status === 'published' ? 'success' : 'info'"
                 >
-                  {{ scope.row.status }}
+                  {{ statusTextMap[scope.row.status] || scope.row.status }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -146,7 +163,7 @@ onMounted(fetchArticles);
             <div class="mobile-card-top">
               <strong>{{ item.title || "未命名文章" }}</strong>
               <el-tag :type="item.status === 'published' ? 'success' : 'info'">
-                {{ item.status }}
+                {{ statusTextMap[item.status] || item.status }}
               </el-tag>
             </div>
             <p>{{ item.excerpt || "暂无摘要" }}</p>

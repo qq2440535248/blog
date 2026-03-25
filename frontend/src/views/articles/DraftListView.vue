@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import request from "../../utils/request";
+import { removeCacheByPrefix } from "../../utils/cache";
 import message from "../../utils/message";
 
 const router = useRouter();
@@ -52,6 +53,7 @@ function editDraft(id) {
 async function publishDraft(id) {
   try {
     await request.post(`/drafts/${id}/publish`);
+    removeCacheByPrefix("articles:");
     message.success("草稿发布成功");
     fetchDrafts();
   } catch (error) {

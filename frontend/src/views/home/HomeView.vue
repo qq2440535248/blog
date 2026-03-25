@@ -139,7 +139,12 @@ onMounted(fetchFeed);
             <span>发布时间：{{ formatDate(item.createdAt) }}</span>
           </div>
           <div class="feed-tags">
-            <el-tag v-for="tag in item.tags || []" :key="tag.id" effect="plain" size="small">
+            <el-tag
+              v-for="tag in item.tags || []"
+              :key="tag.id"
+              effect="plain"
+              size="small"
+            >
               {{ tag.name }}
             </el-tag>
           </div>
