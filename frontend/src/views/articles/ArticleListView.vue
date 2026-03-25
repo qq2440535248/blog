@@ -80,6 +80,24 @@ async function removeArticle(id) {
   }
 }
 
+async function moveToDraft(id) {
+  const confirmed = window.confirm("确认将这篇文章下架并移入草稿箱吗？");
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    await request.patch(`/articles/${id}/move-to-draft`);
+    removeCache(
+      `articles:${filters.q}:${pagination.page}:${pagination.pageSize}`,
+    );
+    message.success("已下架到草稿箱");
+    fetchArticles();
+  } catch (error) {
+    message.error(error?.response?.data?.message || "下架到草稿箱失败");
+  }
+}
+
 onMounted(fetchArticles);
 </script>
 
@@ -129,25 +147,35 @@ onMounted(fetchArticles);
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="240" fixed="right">
+            <el-table-column label="操作" width="380" fixed="right">
               <template #default="scope">
-                <el-button
-                  text
-                  type="primary"
-                  @click="router.push(`/articles/${scope.row.id}`)"
-                >
-                  详情
-                </el-button>
-                <el-button text type="primary" @click="goEditor(scope.row.id)">
-                  编辑
-                </el-button>
-                <el-button
-                  text
-                  type="danger"
-                  @click="removeArticle(scope.row.id)"
-                >
-                  删除
-                </el-button>
+                <div class="table-actions">
+                  <el-button
+                    text
+                    type="primary"
+                    @click="router.push(`/articles/${scope.row.id}`)"
+                  >
+                    详情
+                  </el-button>
+                  <el-button text type="primary" @click="goEditor(scope.row.id)">
+                    编辑
+                  </el-button>
+                  <el-button
+                    v-if="scope.row.status === 'published'"
+                    text
+                    type="warning"
+                    @click="moveToDraft(scope.row.id)"
+                  >
+                    下架到草稿箱
+                  </el-button>
+                  <el-button
+                    text
+                    type="danger"
+                    @click="removeArticle(scope.row.id)"
+                  >
+                    删除
+                  </el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -178,6 +206,14 @@ onMounted(fetchArticles);
               <el-button text type="primary" @click="goEditor(item.id)"
                 >编辑</el-button
               >
+              <el-button
+                v-if="item.status === 'published'"
+                text
+                type="warning"
+                @click="moveToDraft(item.id)"
+              >
+                下架到草稿箱
+              </el-button>
               <el-button text type="danger" @click="removeArticle(item.id)"
                 >删除</el-button
               >
@@ -245,6 +281,13 @@ h1 {
 
 .table-wrap {
   overflow-x: auto;
+}
+
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .title-cell {

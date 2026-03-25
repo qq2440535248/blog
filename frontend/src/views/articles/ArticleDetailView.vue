@@ -24,6 +24,7 @@ const replyTargetRootId = ref(null);
 const replyTargetComment = ref(null);
 const actionLoading = ref(false);
 const takedownLoading = ref(false);
+const moveDraftLoading = ref(false);
 const expandedReplyMap = ref({});
 let unbindCodeCopy = null;
 
@@ -351,7 +352,9 @@ async function adminTakedown() {
     return;
   }
 
-  const reason = String(reasonInput || "").trim().slice(0, 200);
+  const reason = String(reasonInput || "")
+    .trim()
+    .slice(0, 200);
 
   try {
     takedownLoading.value = true;
@@ -363,6 +366,33 @@ async function adminTakedown() {
     message.error(error?.response?.data?.message || "下架失败");
   } finally {
     takedownLoading.value = false;
+  }
+}
+
+async function moveArticleToDraft() {
+  if (!ensureLogin("下架到草稿箱")) {
+    return;
+  }
+
+  if (!canEdit.value) {
+    message.error("仅作者本人可执行此操作");
+    return;
+  }
+
+  const confirmed = window.confirm("确认将这篇文章下架并移入草稿箱吗？");
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    moveDraftLoading.value = true;
+    await request.patch(`/articles/${route.params.id}/move-to-draft`);
+    message.success("已下架并移入草稿箱，可在草稿箱继续发布");
+    router.replace("/drafts");
+  } catch (error) {
+    message.error(error?.response?.data?.message || "下架到草稿箱失败");
+  } finally {
+    moveDraftLoading.value = false;
   }
 }
 
@@ -595,6 +625,15 @@ watch(
             编辑文章
           </el-button>
           <el-button
+            v-if="canEdit && article?.status === 'published'"
+            type="warning"
+            plain
+            :loading="moveDraftLoading"
+            @click="moveArticleToDraft"
+          >
+            下架到草稿箱
+          </el-button>
+          <el-button
             v-if="canModerate && article?.status === 'published'"
             type="warning"
             plain
@@ -612,7 +651,10 @@ watch(
         >
           <span class="action-content">
             <span class="action-icon">👍</span>
-            <span>{{ liked ? "已点赞" : "点赞文章" }} {{ article?.likesCount || 0 }}</span>
+            <span
+              >{{ liked ? "已点赞" : "点赞文章" }}
+              {{ article?.likesCount || 0 }}</span
+            >
           </span>
         </el-button>
         <el-button
@@ -623,7 +665,10 @@ watch(
         >
           <span class="action-content">
             <span class="action-icon">{{ collected ? "★" : "☆" }}</span>
-            <span>{{ collected ? "已收藏" : "收藏文章" }} {{ article?.collectionsCount || 0 }}</span>
+            <span
+              >{{ collected ? "已收藏" : "收藏文章" }}
+              {{ article?.collectionsCount || 0 }}</span
+            >
           </span>
         </el-button>
       </aside>

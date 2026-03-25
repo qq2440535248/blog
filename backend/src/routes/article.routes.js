@@ -15,6 +15,7 @@ router.get('/:id', optionalAuthMiddleware, validate(validateIdParam), articleCon
 router.get('/', authMiddleware, articleController.list);
 router.patch('/:id/takedown', authMiddleware, adminMiddleware, validate(validateIdParam), articleController.adminTakedown);
 router.patch('/:id/restore', authMiddleware, adminMiddleware, validate(validateIdParam), articleController.adminRestore);
+router.patch('/:id/move-to-draft', authMiddleware, validate(validateIdParam), articleController.moveToDraft);
 router.post('/', authMiddleware, validate(validateArticleCreate), articleController.create);
 router.put('/:id', authMiddleware, validate(validateIdParam), validate(validateArticleUpdate), articleController.update);
 router.delete('/:id', authMiddleware, validate(validateIdParam), articleController.remove);

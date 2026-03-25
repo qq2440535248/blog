@@ -25,9 +25,9 @@ const draftId = ref(null);
 const saveStatus = ref("自动保存已开启");
 const editorRef = ref();
 const markdownContainerRef = ref();
-const hotPicking = ref(false);
 let autoSaveTimer = null;
 const previewHtml = ref("");
+const tagInput = ref("");
 let unbindCodeCopy = null;
 
 const hotCategories = [
@@ -95,7 +95,7 @@ const form = reactive({
   content: "",
   status: "published",
   categoryId: null,
-  tagIds: [],
+  categoryName: "",
 });
 
 async function refreshPreview() {
@@ -145,50 +145,34 @@ async function ensureTag(name) {
   return findByName(tags.value, name);
 }
 
-async function pickHotCategory(name) {
-  if (hotPicking.value) {
-    return;
-  }
-
-  try {
-    hotPicking.value = true;
-    const category = await ensureCategory(name);
-    if (!category) {
-      throw new Error("分类创建失败");
-    }
-    form.categoryId = category.id;
-    message.success(`已选择 HOT 分类：${category.name}`);
-  } catch (error) {
-    message.error(getApiErrorMessage(error, "选择热门分类失败"));
-  } finally {
-    hotPicking.value = false;
-  }
+function parseInputItems(value) {
+  return String(value || "")
+    .split(/[，,\/]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
-async function pickHotTag(name) {
-  if (hotPicking.value) {
-    return;
+function appendUniqueInputValue(currentValue, nextValue) {
+  const target = String(nextValue || "").trim();
+  if (!target) {
+    return String(currentValue || "");
   }
 
-  try {
-    hotPicking.value = true;
-    const tag = await ensureTag(name);
-    if (!tag) {
-      throw new Error("标签创建失败");
-    }
-
-    if (!form.tagIds.includes(tag.id)) {
-      form.tagIds = [...form.tagIds, tag.id];
-      message.success(`已添加 HOT 标签：${tag.name}`);
-      return;
-    }
-
-    message.info(`HOT 标签已存在：${tag.name}`);
-  } catch (error) {
-    message.error(getApiErrorMessage(error, "选择热门标签失败"));
-  } finally {
-    hotPicking.value = false;
+  const items = parseInputItems(currentValue);
+  const exists = items.some((item) => normalizeName(item) === normalizeName(target));
+  if (exists) {
+    return String(currentValue || "");
   }
+
+  return items.length ? `${items.join(" / ")} / ${target}` : target;
+}
+
+function pickHotCategory(name) {
+  form.categoryName = appendUniqueInputValue(form.categoryName, name);
+}
+
+function pickHotTag(name) {
+  tagInput.value = appendUniqueInputValue(tagInput.value, name);
 }
 
 async function normalizeTagIds(rawTagIds = []) {
@@ -214,6 +198,44 @@ async function normalizeTagIds(rawTagIds = []) {
   return Array.from(new Set(ids));
 }
 
+function normalizeName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase();
+}
+
+function getManualTagNames() {
+  return parseInputItems(tagInput.value);
+}
+
+function getCategoryNameById(categoryId) {
+  const id = Number(categoryId || 0);
+  if (!id) {
+    return "";
+  }
+
+  return categories.value.find((item) => Number(item.id) === id)?.name || "";
+}
+
+async function resolveCategoryId() {
+  const names = parseInputItems(form.categoryName);
+  if (!names.length) {
+    form.categoryId = null;
+    return null;
+  }
+
+  const name = names.join(" / ");
+
+  const category = await ensureCategory(name);
+  if (!category?.id) {
+    throw new Error("分类创建失败");
+  }
+
+  form.categoryId = category.id;
+  form.categoryName = category.name;
+  return category.id;
+}
+
 async function fetchDetail() {
   if (isDraftEdit.value) {
     const { data } = await request.get(`/drafts/${route.params.id}`);
@@ -223,7 +245,10 @@ async function fetchDetail() {
     form.excerpt = draft.excerpt || "";
     form.content = draft.content || "";
     form.categoryId = draft.categoryId;
-    form.tagIds = draft.tagIds || [];
+    form.categoryName = getCategoryNameById(draft.categoryId);
+    tagInput.value = (draft.tagIds || [])
+      .map((id) => tags.value.find((item) => Number(item.id) === Number(id))?.name || String(id))
+      .join(" / ");
     form.status = "draft";
     return;
   }
@@ -239,7 +264,9 @@ async function fetchDetail() {
   form.content = article.content;
   form.status = article.status;
   form.categoryId = article.categoryId;
-  form.tagIds = (article.tags || []).map((item) => item.id);
+  form.categoryName =
+    article.category?.name || getCategoryNameById(article.categoryId);
+  tagInput.value = (article.tags || []).map((item) => item.name).join(" / ");
 }
 
 async function saveDraftSilently() {
@@ -251,8 +278,8 @@ async function saveDraftSilently() {
     title: form.title,
     excerpt: form.excerpt,
     content: form.content,
-    categoryId: form.categoryId,
-    tagIds: await normalizeTagIds(form.tagIds),
+    categoryId: await resolveCategoryId(),
+    tagIds: await normalizeTagIds(getManualTagNames()),
   };
 
   if (draftId.value) {
@@ -284,8 +311,8 @@ async function saveArticle(saveAsDraft = false) {
       excerpt: form.excerpt,
       content: form.content,
       status: form.status,
-      categoryId: form.categoryId,
-      tagIds: await normalizeTagIds(form.tagIds),
+      categoryId: await resolveCategoryId(),
+      tagIds: await normalizeTagIds(getManualTagNames()),
     };
 
     if (isEdit.value && !isDraftEdit.value) {
@@ -391,14 +418,11 @@ watch(
             </el-form-item>
             <div class="inline-fields">
               <el-form-item label="分类">
-                <el-select v-model="form.categoryId" placeholder="请选择分类">
-                  <el-option
-                    v-for="item in categories"
-                    :key="item.id"
-                    :label="item.name"
-                    :value="item.id"
-                  />
-                </el-select>
+                <el-input
+                  v-model="form.categoryName"
+                  placeholder="可手动输入分类，或点击下方 HOT 分类"
+                  @input="form.categoryId = null"
+                />
                 <div class="hot-box">
                   <p class="hot-title">
                     <span class="hot-icon">HOT</span> 热门分类
@@ -417,21 +441,10 @@ watch(
                 </div>
               </el-form-item>
               <el-form-item label="标签">
-                <el-select
-                  v-model="form.tagIds"
-                  multiple
-                  filterable
-                  allow-create
-                  default-first-option
-                  placeholder="请选择标签"
-                >
-                  <el-option
-                    v-for="item in tags"
-                    :key="item.id"
-                    :label="item.name"
-                    :value="item.id"
-                  />
-                </el-select>
+                <el-input
+                  v-model="tagInput"
+                  placeholder="可直接输入标签，或点击下方 HOT 标签自动拼接"
+                />
                 <div class="hot-box">
                   <p class="hot-title">
                     <span class="hot-icon">HOT</span> 热门标签
@@ -549,6 +562,10 @@ h2 {
 }
 
 .inline-fields :deep(.el-select) {
+  width: 100%;
+}
+
+.inline-fields :deep(.el-input) {
   width: 100%;
 }
 

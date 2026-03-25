@@ -137,12 +137,17 @@ async function changeStatus(item, targetStatus) {
     return;
   }
 
-  const reasonInput = window.prompt(`可选：填写${actionText}原因（最多 200 字）`, "");
+  const reasonInput = window.prompt(
+    `可选：填写${actionText}原因（最多 200 字）`,
+    "",
+  );
   if (reasonInput === null) {
     return;
   }
 
-  const reason = String(reasonInput || "").trim().slice(0, 200);
+  const reason = String(reasonInput || "")
+    .trim()
+    .slice(0, 200);
 
   try {
     actionLoadingId.value = item.id;

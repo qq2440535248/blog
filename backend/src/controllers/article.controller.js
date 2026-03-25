@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Article, Category, Tag, User, ModerationLog, Collection } = require('../models');
+const { Article, Category, Tag, User, ModerationLog, Collection, Draft } = require('../models');
 const { success, fail, ERROR_CODES } = require('../utils/http');
 const { isAdminUser } = require('../utils/role');
 
@@ -288,6 +288,38 @@ exports.remove = async (req, res, next) => {
         await article.destroy();
 
         return success(res, null, 'Article deleted');
+    } catch (err) {
+        return next(err);
+    }
+};
+
+exports.moveToDraft = async (req, res, next) => {
+    try {
+        const article = await Article.findOne({
+            where: { id: req.params.id, userId: req.auth.userId },
+            include: [{ model: Tag, as: 'tags', through: { attributes: [] }, attributes: ['id'] }],
+        });
+
+        if (!article) {
+            return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
+        }
+
+        const tagIds = Array.isArray(article.tags)
+            ? article.tags.map((item) => Number(item.id)).filter((id) => Number.isInteger(id) && id > 0)
+            : [];
+
+        const draft = await Draft.create({
+            userId: req.auth.userId,
+            title: article.title || '',
+            excerpt: article.excerpt || '',
+            content: article.content || '',
+            categoryId: article.categoryId || null,
+            tagIds,
+        });
+
+        await article.destroy();
+
+        return success(res, { draftId: draft.id }, 'Article moved to draft');
     } catch (err) {
         return next(err);
     }
