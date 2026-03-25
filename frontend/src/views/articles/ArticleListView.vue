@@ -68,71 +68,151 @@ onMounted(fetchArticles);
 </script>
 
 <template>
-  <main class="page">
-    <div class="toolbar">
-      <el-input
-        v-model="filters.q"
-        placeholder="搜索标题或内容"
-        style="max-width: 280px"
-        @keyup.enter="fetchArticles"
-      />
-      <el-button type="primary" @click="fetchArticles">搜索</el-button>
-      <el-button type="success" @click="goEditor()">写文章</el-button>
-    </div>
+  <main class="article-list page-block">
+    <section class="container">
+      <header class="list-header">
+        <div>
+          <p class="kicker">ARTICLE CENTER</p>
+          <h1>文章管理</h1>
+          <p>快速检索、编辑与维护你的内容资产。</p>
+        </div>
+        <el-button type="success" @click="goEditor()">写新文章</el-button>
+      </header>
 
-    <el-table
-      v-loading="loading"
-      :data="articles"
-      style="width: 100%; margin-top: 16px"
-    >
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="title" label="标题" />
-      <el-table-column prop="status" label="状态" width="120" />
-      <el-table-column label="操作" width="280">
-        <template #default="scope">
-          <el-button
-            text
-            type="primary"
-            @click="router.push(`/articles/${scope.row.id}`)"
-            >详情</el-button
-          >
-          <el-button text type="primary" @click="goEditor(scope.row.id)"
-            >编辑</el-button
-          >
-          <el-button text type="danger" @click="removeArticle(scope.row.id)"
-            >删除</el-button
-          >
-        </template>
-      </el-table-column>
-    </el-table>
+      <el-card class="toolbar-card" shadow="never">
+        <div class="toolbar">
+          <el-input
+            v-model="filters.q"
+            placeholder="搜索标题或内容"
+            @keyup.enter="fetchArticles"
+          />
+          <el-button type="primary" @click="fetchArticles">搜索</el-button>
+        </div>
+      </el-card>
 
-    <div class="pager">
-      <el-pagination
-        v-model:current-page="pagination.page"
-        :page-size="pagination.pageSize"
-        layout="prev, pager, next"
-        :total="pagination.total"
-        @current-change="fetchArticles"
-      />
-    </div>
+      <el-card class="table-card" shadow="never">
+        <el-table v-loading="loading" :data="articles" style="width: 100%">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column label="标题" min-width="280">
+            <template #default="scope">
+              <div class="title-cell">
+                <strong>{{ scope.row.title }}</strong>
+                <span>{{ scope.row.excerpt || "暂无摘要" }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="scope">
+              <el-tag
+                :type="scope.row.status === 'published' ? 'success' : 'info'"
+              >
+                {{ scope.row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="240" fixed="right">
+            <template #default="scope">
+              <el-button
+                text
+                type="primary"
+                @click="router.push(`/articles/${scope.row.id}`)"
+              >
+                详情
+              </el-button>
+              <el-button text type="primary" @click="goEditor(scope.row.id)">
+                编辑
+              </el-button>
+              <el-button
+                text
+                type="danger"
+                @click="removeArticle(scope.row.id)"
+              >
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+
+      <div class="pager">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          :page-size="pagination.pageSize"
+          layout="prev, pager, next"
+          :total="pagination.total"
+          @current-change="fetchArticles"
+        />
+      </div>
+    </section>
   </main>
 </template>
 
 <style scoped>
-.page {
-  max-width: 980px;
-  margin: 24px auto;
-  padding: 0 16px;
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+}
+
+h1 {
+  margin: 8px 0;
+  font-size: clamp(26px, 3vw, 36px);
+}
+
+.list-header p {
+  margin: 0;
+  color: var(--color-text-secondary);
 }
 
 .toolbar {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+}
+
+.toolbar-card {
+  margin-top: 16px;
+}
+
+.table-card {
+  margin-top: 14px;
+}
+
+.title-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.title-cell strong {
+  color: var(--color-text);
+}
+
+.title-cell span {
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .pager {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+@media (max-width: 820px) {
+  .list-header {
+    flex-direction: column;
+  }
+
+  .toolbar {
+    flex-direction: column;
+  }
 }
 </style>

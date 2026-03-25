@@ -24,12 +24,16 @@ async function logout() {
       </p>
 
       <div v-if="!authStore.isAuthenticated" class="hero-actions">
-        <router-link class="action-link primary" to="/login">立即登录</router-link>
+        <router-link class="action-link primary" to="/login"
+          >立即登录</router-link
+        >
         <router-link class="action-link" to="/register">免费注册</router-link>
       </div>
 
       <div v-else class="hero-actions">
-        <router-link class="action-link primary" to="/articles">进入文章管理</router-link>
+        <router-link class="action-link primary" to="/articles"
+          >进入文章管理</router-link
+        >
         <button class="action-link danger" type="button" @click="logout">
           退出登录
         </button>
@@ -135,7 +139,9 @@ async function logout() {
   background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--shadow-sm);
   padding: 18px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .panel:hover {

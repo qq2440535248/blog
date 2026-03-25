@@ -83,9 +83,7 @@ async function submitRegister() {
       <aside class="auth-brand">
         <p class="brand-kicker">PERSON BLOG</p>
         <h1>创建你的创作空间</h1>
-        <p>
-          注册后即可发布文章、管理标签与分类，并在草稿箱中持续打磨内容。
-        </p>
+        <p>注册后即可发布文章、管理标签与分类，并在草稿箱中持续打磨内容。</p>
       </aside>
 
       <section class="auth-card">
@@ -124,7 +122,9 @@ async function submitRegister() {
           <el-button type="primary" :loading="loading" @click="submitRegister"
             >注册</el-button
           >
-          <router-link class="auth-link" to="/login">已有账号？去登录</router-link>
+          <router-link class="auth-link" to="/login"
+            >已有账号？去登录</router-link
+          >
         </el-form>
       </section>
     </section>

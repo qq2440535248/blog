@@ -73,37 +73,114 @@ watch(
 </script>
 
 <template>
-  <main class="page" v-loading="loading">
-    <h1>{{ article?.title }}</h1>
-    <p>{{ article?.excerpt }}</p>
-    <div class="like-row">
-      <el-button type="primary" plain @click="toggleLike">{{
-        liked ? "取消点赞" : "点赞"
-      }}</el-button>
-      <span>点赞数：{{ article?.likesCount || 0 }}</span>
-    </div>
-    <div class="markdown-body" v-html="renderedContent" />
+  <main class="detail-page page-block" v-loading="loading">
+    <section class="container detail-grid">
+      <article class="article-card">
+        <p class="kicker">ARTICLE DETAIL</p>
+        <h1>{{ article?.title || "未命名文章" }}</h1>
+        <p class="excerpt">{{ article?.excerpt || "暂无摘要" }}</p>
+        <div class="meta-row">
+          <span>状态：{{ article?.status || "-" }}</span>
+          <span>分类：{{ article?.category?.name || "未分类" }}</span>
+        </div>
+        <div class="markdown-body" v-html="renderedContent" />
+      </article>
+
+      <aside class="side-card">
+        <h3>互动</h3>
+        <p>为这篇内容添加你的反馈。</p>
+        <el-button type="primary" plain @click="toggleLike">{{
+          liked ? "取消点赞" : "点赞文章"
+        }}</el-button>
+        <p class="like-count">当前点赞：{{ article?.likesCount || 0 }}</p>
+      </aside>
+    </section>
   </main>
 </template>
 
 <style scoped>
-.page {
-  max-width: 980px;
-  margin: 24px auto;
-  padding: 0 16px;
+.detail-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 260px;
+}
+
+.article-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-md);
+  padding: clamp(18px, 4vw, 34px);
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+h1 {
+  margin: 10px 0;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.15;
+}
+
+.excerpt {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+}
+
+.meta-row {
+  margin-top: 14px;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  color: var(--color-text-secondary);
+  font-size: 14px;
 }
 
 .markdown-body {
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  margin-top: 16px;
+  margin-top: 20px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 20px;
 }
 
-.like-row {
+.side-card {
+  position: sticky;
+  top: 18px;
+  align-self: flex-start;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+}
+
+.side-card h3 {
+  margin: 0;
+}
+
+.side-card p {
+  margin: 8px 0 12px;
+  color: var(--color-text-secondary);
+}
+
+.like-count {
   margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+@media (max-width: 980px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .side-card {
+    position: static;
+  }
 }
 </style>

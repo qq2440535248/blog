@@ -61,9 +61,7 @@ async function submitLogin() {
       <aside class="auth-brand">
         <p class="brand-kicker">PERSON BLOG</p>
         <h1>开启高质量内容管理</h1>
-        <p>
-          登录后可统一管理文章、草稿、分类与标签，保持创作流程稳定高效。
-        </p>
+        <p>登录后可统一管理文章、草稿、分类与标签，保持创作流程稳定高效。</p>
       </aside>
 
       <section class="auth-card">
@@ -91,7 +89,9 @@ async function submitLogin() {
           <el-button type="primary" :loading="loading" @click="submitLogin"
             >登录</el-button
           >
-          <router-link class="auth-link" to="/register">没有账号？去注册</router-link>
+          <router-link class="auth-link" to="/register"
+            >没有账号？去注册</router-link
+          >
         </el-form>
       </section>
     </section>
