@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../../utils/request";
@@ -10,6 +10,7 @@ const loading = ref(false);
 const articles = ref([]);
 const pagination = reactive({ page: 1, pageSize: 10, total: 0 });
 const filters = reactive({ q: "" });
+const hasArticles = computed(() => articles.value.length > 0);
 
 async function fetchArticles() {
   const cacheKey = `articles:${filters.q}:${pagination.page}:${pagination.pageSize}`;
@@ -91,47 +92,70 @@ onMounted(fetchArticles);
       </el-card>
 
       <el-card class="table-card" shadow="never">
-        <el-table v-loading="loading" :data="articles" style="width: 100%">
-          <el-table-column prop="id" label="ID" width="80" />
-          <el-table-column label="标题" min-width="280">
-            <template #default="scope">
-              <div class="title-cell">
-                <strong>{{ scope.row.title }}</strong>
-                <span>{{ scope.row.excerpt || "暂无摘要" }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="status" label="状态" width="120">
-            <template #default="scope">
-              <el-tag
-                :type="scope.row.status === 'published' ? 'success' : 'info'"
-              >
-                {{ scope.row.status }}
+        <div class="table-wrap">
+          <el-table v-loading="loading" :data="articles" style="width: 100%">
+            <el-table-column prop="id" label="ID" width="80" />
+            <el-table-column label="标题" min-width="280">
+              <template #default="scope">
+                <div class="title-cell">
+                  <strong>{{ scope.row.title }}</strong>
+                  <span>{{ scope.row.excerpt || "暂无摘要" }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="status" label="状态" width="120">
+              <template #default="scope">
+                <el-tag
+                  :type="scope.row.status === 'published' ? 'success' : 'info'"
+                >
+                  {{ scope.row.status }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="240" fixed="right">
+              <template #default="scope">
+                <el-button
+                  text
+                  type="primary"
+                  @click="router.push(`/articles/${scope.row.id}`)"
+                >
+                  详情
+                </el-button>
+                <el-button text type="primary" @click="goEditor(scope.row.id)">
+                  编辑
+                </el-button>
+                <el-button
+                  text
+                  type="danger"
+                  @click="removeArticle(scope.row.id)"
+                >
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <div class="mobile-cards">
+          <el-card v-for="item in articles" :key="item.id" class="mobile-card" shadow="never">
+            <div class="mobile-card-top">
+              <strong>{{ item.title || "未命名文章" }}</strong>
+              <el-tag :type="item.status === 'published' ? 'success' : 'info'">
+                {{ item.status }}
               </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="240" fixed="right">
-            <template #default="scope">
-              <el-button
-                text
-                type="primary"
-                @click="router.push(`/articles/${scope.row.id}`)"
-              >
+            </div>
+            <p>{{ item.excerpt || "暂无摘要" }}</p>
+            <div class="mobile-actions">
+              <el-button text type="primary" @click="router.push(`/articles/${item.id}`)">
                 详情
               </el-button>
-              <el-button text type="primary" @click="goEditor(scope.row.id)">
-                编辑
-              </el-button>
-              <el-button
-                text
-                type="danger"
-                @click="removeArticle(scope.row.id)"
-              >
-                删除
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+              <el-button text type="primary" @click="goEditor(item.id)">编辑</el-button>
+              <el-button text type="danger" @click="removeArticle(item.id)">删除</el-button>
+            </div>
+          </el-card>
+        </div>
+
+        <el-empty v-if="!loading && !hasArticles" description="没有找到匹配文章" />
       </el-card>
 
       <div class="pager">
@@ -186,6 +210,10 @@ h1 {
   margin-top: 14px;
 }
 
+.table-wrap {
+  overflow-x: auto;
+}
+
 .title-cell {
   display: grid;
   gap: 4px;
@@ -206,6 +234,34 @@ h1 {
   justify-content: flex-end;
 }
 
+.mobile-cards {
+  display: none;
+  margin-top: 10px;
+  gap: 10px;
+}
+
+.mobile-card {
+  border: 1px solid var(--color-border);
+}
+
+.mobile-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-card p {
+  color: var(--color-text-secondary);
+  margin: 10px 0;
+}
+
+.mobile-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 820px) {
   .list-header {
     flex-direction: column;
@@ -213,6 +269,14 @@ h1 {
 
   .toolbar {
     flex-direction: column;
+  }
+
+  .table-wrap {
+    display: none;
+  }
+
+  .mobile-cards {
+    display: grid;
   }
 }
 </style>

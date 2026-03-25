@@ -1,15 +1,48 @@
 <script setup>
-import { onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import request from "../../utils/request";
 import { renderMarkdown } from "../../utils/markdown";
 
 const route = useRoute();
+const router = useRouter();
 const loading = ref(false);
 const article = ref(null);
 const liked = ref(false);
 const renderedContent = ref("");
+
+const wordCount = computed(() => {
+  const text = (article.value?.content || "").replace(/\s+/g, "").trim();
+  return text.length;
+});
+
+const readingMinutes = computed(() => {
+  const count = wordCount.value;
+  if (!count) {
+    return 0;
+  }
+
+  return Math.max(1, Math.ceil(count / 450));
+});
+
+const updatedAtText = computed(() => {
+  const value = article.value?.updatedAt || article.value?.createdAt;
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate(),
+  ).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(
+    date.getMinutes(),
+  ).padStart(2, "0")}`;
+});
 
 async function refreshRenderedContent() {
   renderedContent.value = await renderMarkdown(article.value?.content || "");
@@ -82,6 +115,9 @@ watch(
         <div class="meta-row">
           <span>状态：{{ article?.status || "-" }}</span>
           <span>分类：{{ article?.category?.name || "未分类" }}</span>
+          <span>字数：{{ wordCount }}</span>
+          <span>阅读：约 {{ readingMinutes }} 分钟</span>
+          <span>更新：{{ updatedAtText }}</span>
         </div>
         <div class="markdown-body" v-html="renderedContent" />
       </article>
@@ -89,6 +125,12 @@ watch(
       <aside class="side-card">
         <h3>互动</h3>
         <p>为这篇内容添加你的反馈。</p>
+        <div class="side-actions">
+          <el-button plain @click="router.push('/articles')">返回列表</el-button>
+          <el-button type="success" plain @click="router.push(`/articles/${route.params.id}/edit`)">
+            编辑文章
+          </el-button>
+        </div>
         <el-button type="primary" plain @click="toggleLike">{{
           liked ? "取消点赞" : "点赞文章"
         }}</el-button>
@@ -166,6 +208,16 @@ h1 {
 .side-card p {
   margin: 8px 0 12px;
   color: var(--color-text-secondary);
+}
+
+.side-actions {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.side-actions .el-button {
+  width: 100%;
 }
 
 .like-count {

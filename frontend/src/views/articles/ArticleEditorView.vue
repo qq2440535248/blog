@@ -22,8 +22,49 @@ const categories = ref([]);
 const tags = ref([]);
 const draftId = ref(null);
 const saveStatus = ref("自动保存已开启");
+const editorRef = ref();
 let autoSaveTimer = null;
 const previewHtml = ref("");
+
+const wordCount = computed(() => {
+  const text = (form.content || "").replace(/\s+/g, "").trim();
+  return text.length;
+});
+
+const readingMinutes = computed(() => {
+  if (!wordCount.value) {
+    return 0;
+  }
+
+  return Math.max(1, Math.ceil(wordCount.value / 450));
+});
+
+const markdownTools = [
+  { label: "标题", insert: "\n## 标题\n" },
+  { label: "粗体", insert: "**加粗文本**" },
+  { label: "代码", insert: "\n```js\nconsole.log('hello')\n```\n" },
+  { label: "引用", insert: "\n> 一段引用\n" },
+  { label: "列表", insert: "\n- 列表项一\n- 列表项二\n" },
+];
+
+function insertMarkdown(text) {
+  const textarea = editorRef.value?.textarea;
+  if (!textarea) {
+    form.content += text;
+    return;
+  }
+
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const original = form.content || "";
+  form.content = `${original.slice(0, start)}${text}${original.slice(end)}`;
+
+  setTimeout(() => {
+    const nextPos = start + text.length;
+    textarea.focus();
+    textarea.setSelectionRange(nextPos, nextPos);
+  }, 0);
+}
 
 const form = reactive({
   title: "",
@@ -179,7 +220,11 @@ watch(
           <p class="kicker">WRITING STUDIO</p>
           <h2>{{ isEdit ? "编辑文章" : "新建文章" }}</h2>
         </div>
-        <el-tag type="info" effect="plain">{{ saveStatus }}</el-tag>
+        <div class="header-right">
+          <el-tag type="info" effect="plain">{{ saveStatus }}</el-tag>
+          <el-tag type="success" effect="plain">字数 {{ wordCount }}</el-tag>
+          <el-tag type="warning" effect="plain">阅读 {{ readingMinutes }} 分钟</el-tag>
+        </div>
       </header>
 
       <section class="editor-grid">
@@ -221,7 +266,19 @@ watch(
               </el-form-item>
             </div>
             <el-form-item label="正文">
+              <div class="tool-row">
+                <el-button
+                  v-for="tool in markdownTools"
+                  :key="tool.label"
+                  size="small"
+                  plain
+                  @click="insertMarkdown(tool.insert)"
+                >
+                  {{ tool.label }}
+                </el-button>
+              </div>
               <el-input
+                ref="editorRef"
                 v-model="form.content"
                 type="textarea"
                 :rows="16"
@@ -245,6 +302,10 @@ watch(
 
         <el-card class="preview" shadow="never">
           <h3>实时预览</h3>
+          <el-empty
+            v-if="!form.content.trim()"
+            description="开始输入正文后，这里将实时显示渲染结果"
+          />
           <div class="preview-content markdown-body" v-html="previewHtml" />
         </el-card>
       </section>
@@ -258,6 +319,13 @@ watch(
   justify-content: space-between;
   align-items: center;
   gap: 14px;
+}
+
+.header-right {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .kicker {
@@ -295,6 +363,13 @@ h2 {
   width: 100%;
 }
 
+.tool-row {
+  margin-bottom: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .actions {
   margin-top: 10px;
   display: flex;
@@ -315,6 +390,15 @@ h2 {
 }
 
 @media (max-width: 980px) {
+  .editor-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-right {
+    justify-content: flex-start;
+  }
+
   .editor-grid {
     grid-template-columns: 1fr;
   }
