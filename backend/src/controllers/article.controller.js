@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Article, Category, Tag, User, ModerationLog } = require('../models');
+const { Article, Category, Tag, User, ModerationLog, Collection } = require('../models');
 const { success, fail, ERROR_CODES } = require('../utils/http');
 const { isAdminUser } = require('../utils/role');
 
@@ -194,6 +194,9 @@ exports.detail = async (req, res, next) => {
         if (article.status !== 'published' && !isOwner) {
             return fail(res, 'Article not found', 404, ERROR_CODES.NOT_FOUND);
         }
+
+        const collectionsCount = await Collection.count({ where: { articleId: article.id } });
+        article.setDataValue('collectionsCount', collectionsCount);
 
         return success(res, article);
     } catch (err) {

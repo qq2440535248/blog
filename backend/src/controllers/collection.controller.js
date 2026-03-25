@@ -3,7 +3,6 @@ const { success, fail, ERROR_CODES } = require('../utils/http');
 
 async function refreshCollectionsCount(articleId) {
     const collectionsCount = await Collection.count({ where: { articleId } });
-    await Article.update({ collectionsCount }, { where: { id: articleId } });
     return collectionsCount;
 }
 

@@ -59,7 +59,7 @@ watch(
   <div class="app-shell">
     <header class="topbar" v-if="!guestRoutes.includes(route.path)">
       <div class="container topbar-inner">
-        <router-link class="brand" to="/">Person Blog</router-link>
+        <router-link class="brand" to="/">创作社区</router-link>
 
         <button
           class="menu-toggle"
@@ -78,14 +78,14 @@ watch(
             :class="{ active: isActive('/articles') }"
             to="/articles"
           >
-            文章
+            个人文章
           </router-link>
           <router-link
             v-if="authStore.isAuthenticated"
             :class="{ active: isActive('/drafts') }"
             to="/drafts"
           >
-            草稿
+            个人草稿
           </router-link>
           <router-link
             v-if="authStore.isAuthenticated && isAdmin"

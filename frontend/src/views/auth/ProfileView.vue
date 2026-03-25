@@ -493,7 +493,7 @@ onMounted(async () => {
 <style scoped>
 .profile-shell {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 260px) minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -523,6 +523,9 @@ onMounted(async () => {
 .user-card p {
   margin: 6px 0 0;
   color: var(--color-text-secondary);
+  font-size: 14px;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .tab-btn {
@@ -531,6 +534,8 @@ onMounted(async () => {
   background: #ffffff;
   color: var(--color-text);
   text-align: left;
+  width: 100%;
+  box-sizing: border-box;
   padding: 10px 12px;
   font-weight: 600;
   cursor: pointer;

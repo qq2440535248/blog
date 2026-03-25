@@ -42,12 +42,6 @@ const Article = sequelize.define(
             defaultValue: 0,
             field: 'likes_count',
         },
-        collectionsCount: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            allowNull: false,
-            defaultValue: 0,
-            field: 'collections_count',
-        },
     },
     {
         tableName: 'articles',
