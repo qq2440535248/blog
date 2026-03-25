@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const apiTimeout = Number(import.meta.env.VITE_REQUEST_TIMEOUT || 10000);
 
 export function getApiErrorMessage(error, fallback = '请求失败，请稍后重试') {
     return (
@@ -12,7 +13,7 @@ export function getApiErrorMessage(error, fallback = '请求失败，请稍后�
 
 const request = axios.create({
     baseURL: apiBaseUrl,
-    timeout: 10000,
+    timeout: Number.isFinite(apiTimeout) && apiTimeout > 0 ? apiTimeout : 10000,
 });
 
 let refreshPromise = null;
