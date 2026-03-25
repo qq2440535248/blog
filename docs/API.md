@@ -37,6 +37,8 @@ Base URL: http://localhost:3000/api
 Authorization: Bearer <access_token>
 ```
 
+- 受保护接口仅接受 `type=access` 且 `sub` 为正整数的访问令牌
+
 ## 认证模块
 
 ### POST /auth/register

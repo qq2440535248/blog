@@ -11,7 +11,17 @@ function authMiddleware(req, res, next) {
 
     try {
         const payload = verifyAccessToken(token);
-        req.auth = { userId: Number(payload.sub) };
+
+        if (payload.type !== 'access') {
+            return fail(res, 'Token type is invalid', 401, ERROR_CODES.UNAUTHORIZED);
+        }
+
+        const userId = Number(payload.sub);
+        if (!Number.isInteger(userId) || userId <= 0) {
+            return fail(res, 'Token subject is invalid', 401, ERROR_CODES.UNAUTHORIZED);
+        }
+
+        req.auth = { userId };
         return next();
     } catch (_err) {
         return fail(res, 'Token invalid or expired', 401, ERROR_CODES.UNAUTHORIZED);

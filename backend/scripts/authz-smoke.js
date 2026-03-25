@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const jwt = require('jsonwebtoken');
 const app = require('../src/app');
 
 async function ensureUnauthorized(baseUrl, path, method = 'GET') {
@@ -19,6 +20,23 @@ async function run() {
         await ensureUnauthorized(baseUrl, '/articles');
         await ensureUnauthorized(baseUrl, '/drafts');
         await ensureUnauthorized(baseUrl, '/articles/1/is-liked');
+
+        const accessSecret = process.env.JWT_ACCESS_SECRET || 'change_me_access_secret';
+        const badTypeToken = jwt.sign({ sub: 1, type: 'refresh' }, accessSecret, { expiresIn: '15m' });
+        const badTypeResp = await fetch(`${baseUrl}/users/me`, {
+            headers: { Authorization: `Bearer ${badTypeToken}` },
+        });
+        assert.equal(badTypeResp.status, 401);
+        const badTypeData = await badTypeResp.json();
+        assert.equal(badTypeData.code, 'UNAUTHORIZED');
+
+        const badSubToken = jwt.sign({ sub: 'NaN', type: 'access' }, accessSecret, { expiresIn: '15m' });
+        const badSubResp = await fetch(`${baseUrl}/users/me`, {
+            headers: { Authorization: `Bearer ${badSubToken}` },
+        });
+        assert.equal(badSubResp.status, 401);
+        const badSubData = await badSubResp.json();
+        assert.equal(badSubData.code, 'UNAUTHORIZED');
 
         console.log('authz smoke tests passed');
     } finally {
